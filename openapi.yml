@@ -90,8 +90,8 @@ paths:
         - Create movie record with `title`, `genre`, and `releaseDate` as required fields.
         - After successful creation, synchronously call upstream `GET /boxoffice?title=...`:
           * Upstream 200: merge `{revenue, distributor, budget, mpaRating, currency, source, lastUpdated}` into movie record, **but user-provided values take precedence**;
-          * Upstream non-200 (e.g., 404): set `boxOffice = null`; **do not block creation**.
-        - **Priority rule**: If user provides optional fields (distributor, budget, mpaRating), these values override any corresponding data from the box office API.
+          * Upstream non-200 (e.g., 404): set `boxOffice = null` and leave `distributor`, `budget`, `mpaRating` as `null` if not provided by user; **do not block creation**.
+        - **Priority rule**: User-provided fields (distributor, budget, mpaRating) always take precedence over corresponding data from the box office API.
       security:
         - BearerAuth: []
       requestBody:
@@ -272,16 +272,16 @@ components:
           example: "2010-07-16"
         distributor:
           type: string
-          description: The company that distributed the movie. If not provided, will be filled from box office API if available.
+          description: The company that distributed the movie. User-provided value takes precedence over box office API data.
           example: "Warner Bros. Pictures"
         budget:
           type: integer
           format: int64
-          description: The estimated production budget of the movie in USD. If not provided, will be filled from box office API if available.
+          description: The estimated production budget of the movie in USD. User-provided value takes precedence over box office API data.
           example: 160000000
         mpaRating:
           type: string
-          description: The MPA (Motion Picture Association) rating. If not provided, will be filled from box office API if available.
+          description: The MPA (Motion Picture Association) rating. User-provided value takes precedence over box office API data.
           example: "PG-13"
     BoxOffice:
       type: object
@@ -295,7 +295,7 @@ components:
               format: int64
               description: The total worldwide gross revenue in USD.
               example: 829895144
-            openingWeekendUsa:
+            openingWeekendUSA:
               type: integer
               format: int64
               description: The opening weekend gross revenue in the USA in USD.
@@ -348,7 +348,7 @@ components:
           allOf:
             - $ref: "#/components/schemas/BoxOffice"
           nullable: true
-      required: [id, title, releaseDate, boxOffice]
+      required: [id, title, genre, releaseDate]
     RatingSubmit:
       type: object
       additionalProperties: false
