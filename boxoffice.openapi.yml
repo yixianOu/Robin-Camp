@@ -1,0 +1,120 @@
+openapi: 3.0.0
+info:
+  title: Box Office API
+  description: |-
+    A third-party API to provide box office and distribution information for movies. 
+    This API is used to enrich the internal movie database of a movie review platform.
+    Authentication is required via an API Key provided in the X-API-Key header.
+  version: 1.0.0
+
+servers:
+  - url: https://mock.apifox.com/m1/4288164-0-default
+    description: Apifox Mock Server
+
+paths:
+  /boxoffice:
+    get:
+      summary: Get Box Office Information by Movie Title
+      description: Retrieves financial and distribution details for a single movie based on its title.
+      operationId: getMovieBoxOffice
+      parameters:
+        - name: title
+          in: query
+          description: The title of the movie to look up.
+          required: true
+          schema:
+            type: string
+          example: Inception
+      security:
+        - APIKeyHeader: []
+      responses:
+        '200':
+          description: Successfully retrieved box office information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoxOfficeRecord'
+        '400':
+          description: Bad Request. The 'title' query parameter is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized. The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found. A movie with the specified title could not be found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error. An unexpected error occurred on the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    APIKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API Key for authenticating requests.
+
+  schemas:
+    BoxOfficeRecord:
+      type: object
+      properties:
+        title:
+          type: string
+          description: The official title of the movie.
+          example: Inception
+        distributor:
+          type: string
+          description: The company that distributed the movie.
+          example: "Warner Bros. Pictures"
+        releaseDate:
+          type: string
+          format: date
+          description: The original theatrical release date in North America.
+          example: "2010-07-16"
+        budget:
+          type: integer
+          format: int64
+          description: The estimated production budget of the movie in USD.
+          example: 160000000
+        revenue:
+          type: object
+          properties:
+            worldwide:
+              type: integer
+              format: int64
+              description: The total worldwide gross revenue in USD.
+              example: 829895144
+            openingWeekendUSA:
+              type: integer
+              format: int64
+              description: The opening weekend gross revenue in the USA in USD.
+              example: 62785337
+        mpaRating:
+          type: string
+          description: The MPA (Motion Picture Association) rating.
+          example: "PG-13"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: A short description of the error type.
+          example: Not Found
+        message:
+          type: string
+          description: A detailed message explaining the error.
+          example: "Movie with the specified title was not found."

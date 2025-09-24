@@ -1,0 +1,552 @@
+{
+  "Inception": {
+    "title": "Inception",
+    "distributor": "Warner Bros. Pictures",
+    "releaseDate": "2010-07-16",
+    "budget": 160000000,
+    "revenue": {
+      "worldwide": 829895144,
+      "openingWeekendUSA": 62785337
+    },
+    "mpaRating": "PG-13"
+  },
+  "The Dark Knight": {
+    "title": "The Dark Knight",
+    "distributor": "Warner Bros. Pictures",
+    "releaseDate": "2008-07-18",
+    "budget": 185000000,
+    "revenue": {
+      "worldwide": 1006234167,
+      "openingWeekendUSA": 158411483
+    },
+    "mpaRating": "PG-13"
+  },
+  "Avatar": {
+    "title": "Avatar",
+    "distributor": "20th Century Fox",
+    "releaseDate": "2009-12-18",
+    "budget": 237000000,
+    "revenue": {
+      "worldwide": 2923706026,
+      "openingWeekendUSA": 77025481
+    },
+    "mpaRating": "PG-13"
+  },
+  "Titanic": {
+    "title": "Titanic",
+    "distributor": "Paramount Pictures",
+    "releaseDate": "1997-12-19",
+    "budget": 200000000,
+    "revenue": {
+      "worldwide": 2257844554,
+      "openingWeekendUSA": 28638131
+    },
+    "mpaRating": "PG-13"
+  },
+  "Avengers: Endgame": {
+    "title": "Avengers: Endgame",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2019-04-26",
+    "budget": 356000000,
+    "revenue": {
+      "worldwide": 2799439100,
+      "openingWeekendUSA": 357115007
+    },
+    "mpaRating": "PG-13"
+  },
+  "Jurassic Park": {
+    "title": "Jurassic Park",
+    "distributor": "Universal Pictures",
+    "releaseDate": "1993-06-11",
+    "budget": 63000000,
+    "revenue": {
+      "worldwide": 1109802321,
+      "openingWeekendUSA": 47026828
+    },
+    "mpaRating": "PG-13"
+  },
+  "Frozen": {
+    "title": "Frozen",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2013-11-27",
+    "budget": 150000000,
+    "revenue": {
+      "worldwide": 1290000000,
+      "openingWeekendUSA": 67391326
+    },
+    "mpaRating": "PG"
+  },
+  "Joker": {
+    "title": "Joker",
+    "distributor": "Warner Bros. Pictures",
+    "releaseDate": "2019-10-04",
+    "budget": 55000000,
+    "revenue": {
+      "worldwide": 1074458282,
+      "openingWeekendUSA": 96202337
+    },
+    "mpaRating": "R"
+  },
+  "Parasite": {
+    "title": "Parasite",
+    "distributor": "NEON",
+    "releaseDate": "2019-10-11",
+    "budget": 11400000,
+    "revenue": {
+      "worldwide": 262957597,
+      "openingWeekendUSA": 393216
+    },
+    "mpaRating": "R"
+  },
+  "Interstellar": {
+    "title": "Interstellar",
+    "distributor": "Paramount Pictures",
+    "releaseDate": "2014-11-07",
+    "budget": 165000000,
+    "revenue": {
+      "worldwide": 677471339,
+      "openingWeekendUSA": 47510360
+    },
+    "mpaRating": "PG-13"
+  },
+  "The Wandering Earth": {
+    "title": "The Wandering Earth",
+    "distributor": "CMC Pictures",
+    "releaseDate": "2019-02-05",
+    "budget": 50000000,
+    "revenue": {
+      "worldwide": 700000000,
+      "openingWeekendUSA": 1250000
+    },
+    "mpaRating": "NR"
+  },
+  "Dune: Part Two": {
+    "title": "Dune: Part Two",
+    "distributor": "Warner Bros. Pictures",
+    "releaseDate": "2024-03-01",
+    "budget": 190000000,
+    "revenue": {
+      "worldwide": 711800000,
+      "openingWeekendUSA": 82505173
+    },
+    "mpaRating": "PG-13"
+  },
+  "The Avengers": {
+    "title": "The Avengers",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2012-05-04",
+    "budget": 220000000,
+    "revenue": {
+      "worldwide": 1518812988,
+      "openingWeekendUSA": 207438708
+    },
+    "mpaRating": "PG-13"
+  },
+  "Avengers: Infinity War": {
+    "title": "Avengers: Infinity War",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2018-04-27",
+    "budget": 316000000,
+    "revenue": {
+      "worldwide": 2048359754,
+      "openingWeekendUSA": 257698183
+    },
+    "mpaRating": "PG-13"
+  },
+  "Star Wars: The Force Awakens": {
+    "title": "Star Wars: The Force Awakens",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2015-12-18",
+    "budget": 245000000,
+    "revenue": {
+      "worldwide": 2068223624,
+      "openingWeekendUSA": 247966675
+    },
+    "mpaRating": "PG-13"
+  },
+  "Spider-Man: No Way Home": {
+    "title": "Spider-Man: No Way Home",
+    "distributor": "Sony Pictures Releasing",
+    "releaseDate": "2021-12-17",
+    "budget": 200000000,
+    "revenue": {
+      "worldwide": 1920000000,
+      "openingWeekendUSA": 260138569
+    },
+    "mpaRating": "PG-13"
+  },
+  "Top Gun: Maverick": {
+    "title": "Top Gun: Maverick",
+    "distributor": "Paramount Pictures",
+    "releaseDate": "2022-05-27",
+    "budget": 170000000,
+    "revenue": {
+      "worldwide": 1490000000,
+      "openingWeekendUSA": 126707459
+    },
+    "mpaRating": "PG-13"
+  },
+  "Barbie": {
+    "title": "Barbie",
+    "distributor": "Warner Bros. Pictures",
+    "releaseDate": "2023-07-21",
+    "budget": 145000000,
+    "revenue": {
+      "worldwide": 1446000000,
+      "openingWeekendUSA": 162022044
+    },
+    "mpaRating": "PG-13"
+  },
+  "Oppenheimer": {
+    "title": "Oppenheimer",
+    "distributor": "Universal Pictures",
+    "releaseDate": "2023-07-21",
+    "budget": 100000000,
+    "revenue": {
+      "worldwide": 952000000,
+      "openingWeekendUSA": 82455420
+    },
+    "mpaRating": "R"
+  },
+  "The Super Mario Bros. Movie": {
+    "title": "The Super Mario Bros. Movie",
+    "distributor": "Universal Pictures",
+    "releaseDate": "2023-04-05",
+    "budget": 100000000,
+    "revenue": {
+      "worldwide": 1362000000,
+      "openingWeekendUSA": 146361865
+    },
+    "mpaRating": "PG"
+  },
+  "The Lion King (2019)": {
+    "title": "The Lion King (2019)",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2019-07-19",
+    "budget": 260000000,
+    "revenue": {
+      "worldwide": 1657000000,
+      "openingWeekendUSA": 191770759
+    },
+    "mpaRating": "PG"
+  },
+  "Frozen II": {
+    "title": "Frozen II",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2019-11-22",
+    "budget": 150000000,
+    "revenue": {
+      "worldwide": 1450000000,
+      "openingWeekendUSA": 130263358
+    },
+    "mpaRating": "PG"
+  },
+  "Furious 7": {
+    "title": "Furious 7",
+    "distributor": "Universal Pictures",
+    "releaseDate": "2015-04-03",
+    "budget": 190000000,
+    "revenue": {
+      "worldwide": 1516000000,
+      "openingWeekendUSA": 147187040
+    },
+    "mpaRating": "PG-13"
+  },
+  "Minions": {
+    "title": "Minions",
+    "distributor": "Universal Pictures",
+    "releaseDate": "2015-07-10",
+    "budget": 74000000,
+    "revenue": {
+      "worldwide": 1159000000,
+      "openingWeekendUSA": 115718405
+    },
+    "mpaRating": "PG"
+  },
+  "Beauty and the Beast (2017)": {
+    "title": "Beauty and the Beast (2017)",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2017-03-17",
+    "budget": 160000000,
+    "revenue": {
+      "worldwide": 1263000000,
+      "openingWeekendUSA": 174750616
+    },
+    "mpaRating": "PG"
+  },
+  "Incredibles 2": {
+    "title": "Incredibles 2",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2018-06-15",
+    "budget": 200000000,
+    "revenue": {
+      "worldwide": 1243000000,
+      "openingWeekendUSA": 182687905
+    },
+    "mpaRating": "PG"
+  },
+  "Captain Marvel": {
+    "title": "Captain Marvel",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2019-03-08",
+    "budget": 152000000,
+    "revenue": {
+      "worldwide": 1128000000,
+      "openingWeekendUSA": 153433423
+    },
+    "mpaRating": "PG-13"
+  },
+  "Black Panther": {
+    "title": "Black Panther",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2018-02-16",
+    "budget": 200000000,
+    "revenue": {
+      "worldwide": 1347000000,
+      "openingWeekendUSA": 202003951
+    },
+    "mpaRating": "PG-13"
+  },
+  "Harry Potter and the Deathly Hallows: Part 2": {
+    "title": "Harry Potter and the Deathly Hallows: Part 2",
+    "distributor": "Warner Bros. Pictures",
+    "releaseDate": "2011-07-15",
+    "budget": 250000000,
+    "revenue": {
+      "worldwide": 1341000000,
+      "openingWeekendUSA": 169189427
+    },
+    "mpaRating": "PG-13"
+  },
+  "The Lord of the Rings: The Return of the King": {
+    "title": "The Lord of the Rings: The Return of the King",
+    "distributor": "New Line Cinema",
+    "releaseDate": "2003-12-17",
+    "budget": 94000000,
+    "revenue": {
+      "worldwide": 1146000000,
+      "openingWeekendUSA": 72570578
+    },
+    "mpaRating": "PG-13"
+  },
+  "Zootopia": {
+    "title": "Zootopia",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2016-03-04",
+    "budget": 150000000,
+    "revenue": {
+      "worldwide": 1023000000,
+      "openingWeekendUSA": 75282346
+    },
+    "mpaRating": "PG"
+  },
+  "Finding Dory": {
+    "title": "Finding Dory",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2016-06-17",
+    "budget": 200000000,
+    "revenue": {
+      "worldwide": 1029000000,
+      "openingWeekendUSA": 135060273
+    },
+    "mpaRating": "PG"
+  },
+  "Despicable Me 3": {
+    "title": "Despicable Me 3",
+    "distributor": "Universal Pictures",
+    "releaseDate": "2017-06-30",
+    "budget": 80000000,
+    "revenue": {
+      "worldwide": 1034000000,
+      "openingWeekendUSA": 72539155
+    },
+    "mpaRating": "PG"
+  },
+  "Despicable Me 2": {
+    "title": "Despicable Me 2",
+    "distributor": "Universal Pictures",
+    "releaseDate": "2013-07-03",
+    "budget": 76000000,
+    "revenue": {
+      "worldwide": 970000000,
+      "openingWeekendUSA": 83518200
+    },
+    "mpaRating": "PG"
+  },
+  "Jumanji: Welcome to the Jungle": {
+    "title": "Jumanji: Welcome to the Jungle",
+    "distributor": "Sony Pictures Releasing",
+    "releaseDate": "2017-12-20",
+    "budget": 90000000,
+    "revenue": {
+      "worldwide": 962000000,
+      "openingWeekendUSA": 36169912
+    },
+    "mpaRating": "PG-13"
+  },
+  "Aladdin (2019)": {
+    "title": "Aladdin (2019)",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2019-05-24",
+    "budget": 183000000,
+    "revenue": {
+      "worldwide": 1051000000,
+      "openingWeekendUSA": 91000000
+    },
+    "mpaRating": "PG"
+  },
+  "Aquaman": {
+    "title": "Aquaman",
+    "distributor": "Warner Bros. Pictures",
+    "releaseDate": "2018-12-21",
+    "budget": 160000000,
+    "revenue": {
+      "worldwide": 1152000000,
+      "openingWeekendUSA": 67502612
+    },
+    "mpaRating": "PG-13"
+  },
+  "Guardians of the Galaxy Vol. 3": {
+    "title": "Guardians of the Galaxy Vol. 3",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2023-05-05",
+    "budget": 250000000,
+    "revenue": {
+      "worldwide": 845000000,
+      "openingWeekendUSA": 118414021
+    },
+    "mpaRating": "PG-13"
+  },
+  "Guardians of the Galaxy Vol. 2": {
+    "title": "Guardians of the Galaxy Vol. 2",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2017-05-05",
+    "budget": 200000000,
+    "revenue": {
+      "worldwide": 863000000,
+      "openingWeekendUSA": 146510104
+    },
+    "mpaRating": "PG-13"
+  },
+  "Captain America: Civil War": {
+    "title": "Captain America: Civil War",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2016-05-06",
+    "budget": 250000000,
+    "revenue": {
+      "worldwide": 1153000000,
+      "openingWeekendUSA": 179139142
+    },
+    "mpaRating": "PG-13"
+  },
+  "Iron Man 3": {
+    "title": "Iron Man 3",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2013-05-03",
+    "budget": 200000000,
+    "revenue": {
+      "worldwide": 1215000000,
+      "openingWeekendUSA": 174144585
+    },
+    "mpaRating": "PG-13"
+  },
+  "Transformers: Age of Extinction": {
+    "title": "Transformers: Age of Extinction",
+    "distributor": "Paramount Pictures",
+    "releaseDate": "2014-06-27",
+    "budget": 210000000,
+    "revenue": {
+      "worldwide": 1104000000,
+      "openingWeekendUSA": 100038390
+    },
+    "mpaRating": "PG-13"
+  },
+  "Pirates of the Caribbean: Dead Man's Chest": {
+    "title": "Pirates of the Caribbean: Dead Man's Chest",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2006-07-07",
+    "budget": 225000000,
+    "revenue": {
+      "worldwide": 1066000000,
+      "openingWeekendUSA": 135634554
+    },
+    "mpaRating": "PG-13"
+  },
+  "Pirates of the Caribbean: On Stranger Tides": {
+    "title": "Pirates of the Caribbean: On Stranger Tides",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2011-05-20",
+    "budget": 250000000,
+    "revenue": {
+      "worldwide": 1046000000,
+      "openingWeekendUSA": 90151958
+    },
+    "mpaRating": "PG-13"
+  },
+  "Star Wars: The Last Jedi": {
+    "title": "Star Wars: The Last Jedi",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2017-12-15",
+    "budget": 200000000,
+    "revenue": {
+      "worldwide": 1333000000,
+      "openingWeekendUSA": 220009584
+    },
+    "mpaRating": "PG-13"
+  },
+  "Star Wars: The Rise of Skywalker": {
+    "title": "Star Wars: The Rise of Skywalker",
+    "distributor": "Walt Disney Studios Motion Pictures",
+    "releaseDate": "2019-12-20",
+    "budget": 275000000,
+    "revenue": {
+      "worldwide": 1074000000,
+      "openingWeekendUSA": 177383864
+    },
+    "mpaRating": "PG-13"
+  },
+  "The Batman": {
+    "title": "The Batman",
+    "distributor": "Warner Bros. Pictures",
+    "releaseDate": "2022-03-04",
+    "budget": 185000000,
+    "revenue": {
+      "worldwide": 770000000,
+      "openingWeekendUSA": 134008624
+    },
+    "mpaRating": "PG-13"
+  },
+  "The Hunger Games: Catching Fire": {
+    "title": "The Hunger Games: Catching Fire",
+    "distributor": "Lionsgate",
+    "releaseDate": "2013-11-22",
+    "budget": 130000000,
+    "revenue": {
+      "worldwide": 865000000,
+      "openingWeekendUSA": 158074286
+    },
+    "mpaRating": "PG-13"
+  },
+  "Spider-Man: Far From Home": {
+    "title": "Spider-Man: Far From Home",
+    "distributor": "Sony Pictures Releasing",
+    "releaseDate": "2019-07-02",
+    "budget": 160000000,
+    "revenue": {
+      "worldwide": 1131000000,
+      "openingWeekendUSA": 92579722
+    },
+    "mpaRating": "PG-13"
+  },
+  "The Matrix": {
+    "title": "The Matrix",
+    "distributor": "Warner Bros. Pictures",
+    "releaseDate": "1999-03-31",
+    "budget": 63000000,
+    "revenue": {
+      "worldwide": 466000000,
+      "openingWeekendUSA": 27278899
+    },
+    "mpaRating": "R"
+  }
+}

@@ -1,0 +1,469 @@
+openapi: 3.0.3
+info:
+  title: Movies API
+  version: "1.0.0"
+  description: >
+    Movie service API with the following constraints:
+    - After successful movie creation, synchronously call upstream box office API `GET /boxoffice?title=...`:
+      * If upstream returns **200**: merge `{revenue, distributor, releaseDate, budget, mpaRating, currency, source, lastUpdated}` into movie record.
+      * If upstream fails (e.g., **404**): set `boxOffice = null`, do not block creation process.
+    - Rating submission requires authentication (header `X-Rater-Id`), ratings for same `(movieTitle, raterId)` follow **Upsert** semantics.
+    - Rating aggregation returns `{average, count}`, with average rounded to **1 decimal place**.
+    - List search supports `q | year | distributor | budget | mpaRating | genre | limit | cursor`, pagination response is fixed as `items[] + nextCursor`.
+servers:
+  - url: https://api.example.com
+tags:
+  - name: Movies
+  - name: Ratings
+paths:
+  /movies:
+    get:
+      tags: [Movies]
+      summary: List and search movies
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Keyword search (e.g., fuzzy matching of titles).
+        - in: query
+          name: year
+          schema: { type: integer }
+          description: Exact match for release year (extracted from releaseDate).
+        - in: query
+          name: genre
+          schema: { type: string }
+          description: Exact match for genre (case-insensitive implementation determined by server).
+        - in: query
+          name: distributor
+          schema: { type: string }
+          description: Exact match for distributor (case-insensitive implementation determined by server).
+        - in: query
+          name: budget
+          schema: { type: integer, format: int64 }
+          description: Filter movies with production budget less than or equal to the specified amount in USD.
+        - in: query
+          name: mpaRating
+          schema: { type: string }
+          description: Exact match for MPA rating (e.g., G, PG, PG-13, R, NC-17).
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+          description: Number of items per page.
+        - in: query
+          name: cursor
+          schema: { type: string }
+          description: The `nextCursor` returned from previous page, used to get next page.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoviePage"
+              examples:
+                sample:
+                  value:
+                    items:
+                      - id: "m_123"
+                        title: "Inception"
+                        releaseDate: "2010-07-16"
+                        genre: "Sci-Fi"
+                        distributor: "Warner Bros. Pictures"
+                        budget: 160000000
+                        mpaRating: "PG-13"
+                        boxOffice:
+                          revenue:
+                            worldwide: 829895144
+                            openingWeekendUsa: 62785337
+                          currency: "USD"
+                          source: "ExampleBoxOfficeAPI"
+                          lastUpdated: "2025-09-23T12:00:00Z"
+                    nextCursor: "eyJvZmZzZXQiOjIwMH0="
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    post:
+      tags: [Movies]
+      summary: Create movie (synchronously query and merge box office data after success)
+      description: |
+        - Create movie record with `title`, `genre`, and `releaseDate` as required fields.
+        - After successful creation, synchronously call upstream `GET /boxoffice?title=...`:
+          * Upstream 200: merge `{revenue, distributor, budget, mpaRating, currency, source, lastUpdated}` into movie record, **but user-provided values take precedence**;
+          * Upstream non-200 (e.g., 404): set `boxOffice = null`; **do not block creation**.
+        - **Priority rule**: If user provides optional fields (distributor, budget, mpaRating), these values override any corresponding data from the box office API.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MovieCreate"
+            examples:
+              create_minimal:
+                value:
+                  title: "Inception"
+                  genre: "Sci-Fi"
+                  releaseDate: "2010-07-16"
+              create_full:
+                value:
+                  title: "Inception"
+                  genre: "Sci-Fi"
+                  releaseDate: "2010-07-16"
+                  distributor: "Warner Bros. Pictures"
+                  budget: 160000000
+                  mpaRating: "PG-13"
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: Absolute path of the newly created resource
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Movie"
+              examples:
+                created:
+                  value:
+                    id: "m_123"
+                    title: "Inception"
+                    releaseDate: "2010-07-16"
+                    genre: "Sci-Fi"
+                    distributor: "Warner Bros. Pictures"
+                    budget: 160000000
+                    mpaRating: "PG-13"
+                    boxOffice:
+                      revenue:
+                        worldwide: 829895144
+                        openingWeekendUsa: 62785337
+                      currency: "USD"
+                      source: "ExampleBoxOfficeAPI"
+                      lastUpdated: "2025-09-23T12:00:00Z"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /movies/{title}/ratings:
+    post:
+      tags: [Ratings]
+      summary: Submit rating (Upsert)
+      description: |
+        - Requires request header `X-Rater-Id`.
+        - Upsert semantics: submitting again for same `(movieTitle, raterId)` will overwrite the rating.
+        - `rating` value set: `{0.5, 1.0, …, 5.0}` (step size 0.5).
+      security:
+        - RaterId: []
+      parameters:
+        - in: path
+          name: title
+          required: true
+          schema: { type: string }
+          description: Movie title
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RatingSubmit"
+            examples:
+              upsert:
+                value:
+                  rating: 4.5
+      responses:
+        "201":
+          description: New rating created
+          headers:
+            Location:
+              description: Location of the rating resource after creation or update (optional)
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingResult"
+              examples:
+                created:
+                  value:
+                    movieTitle: "Inception"
+                    raterId: "user_456"
+                    rating: 4.5
+        "200":
+          description: Rating overwritten (updated)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingResult"
+              examples:
+                updated:
+                  value:
+                    movieTitle: "Inception"
+                    raterId: "user_456"
+                    rating: 3.0
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /movies/{title}/rating:
+    get:
+      tags: [Ratings]
+      summary: Rating aggregation
+      description: Returns `{average, count}`, where `average` is rounded to **1 decimal place**.
+      parameters:
+        - in: path
+          name: title
+          required: true
+          schema: { type: string }
+          description: Movie title
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingAggregate"
+              examples:
+                agg:
+                  value:
+                    average: 4.3
+                    count: 128
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    RaterId:
+      type: apiKey
+      in: header
+      name: X-Rater-Id
+
+  schemas:
+    MovieCreate:
+      type: object
+      additionalProperties: false
+      required: [title, genre, releaseDate]
+      properties:
+        title:
+          type: string
+          description: Movie title
+          minLength: 1
+        genre:
+          type: string
+          description: Genre
+        releaseDate:
+          type: string
+          format: date
+          description: The original theatrical release date in North America.
+          example: "2010-07-16"
+        distributor:
+          type: string
+          description: The company that distributed the movie. If not provided, will be filled from box office API if available.
+          example: "Warner Bros. Pictures"
+        budget:
+          type: integer
+          format: int64
+          description: The estimated production budget of the movie in USD. If not provided, will be filled from box office API if available.
+          example: 160000000
+        mpaRating:
+          type: string
+          description: The MPA (Motion Picture Association) rating. If not provided, will be filled from box office API if available.
+          example: "PG-13"
+    BoxOffice:
+      type: object
+      additionalProperties: false
+      properties:
+        revenue:
+          type: object
+          properties:
+            worldwide:
+              type: integer
+              format: int64
+              description: The total worldwide gross revenue in USD.
+              example: 829895144
+            openingWeekendUsa:
+              type: integer
+              format: int64
+              description: The opening weekend gross revenue in the USA in USD.
+              example: 62785337
+          required: [worldwide]
+        currency:
+          type: string
+          description: Currency code (e.g., USD)
+          example: "USD"
+        source:
+          type: string
+          description: Data source identifier
+          example: "ExampleBoxOfficeAPI"
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Last update time from upstream (UTC)
+          example: "2025-09-23T12:00:00Z"
+      required: [revenue, currency, source, lastUpdated]
+    Movie:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Movie ID
+        title:
+          type: string
+        releaseDate:
+          type: string
+          format: date
+          description: The original theatrical release date in North America.
+          example: "2010-07-16"
+        genre:
+          type: string
+        distributor:
+          type: string
+          description: The company that distributed the movie.
+          example: "Warner Bros. Pictures"
+        budget:
+          type: integer
+          format: int64
+          description: The estimated production budget of the movie in USD.
+          example: 160000000
+        mpaRating:
+          type: string
+          description: The MPA (Motion Picture Association) rating.
+          example: "PG-13"
+        boxOffice:
+          allOf:
+            - $ref: "#/components/schemas/BoxOffice"
+          nullable: true
+      required: [id, title, releaseDate, boxOffice]
+    RatingSubmit:
+      type: object
+      additionalProperties: false
+      required: [rating]
+      properties:
+        rating:
+          type: number
+          description: Rating value from `{0.5, 1.0, …, 5.0}`
+          enum:
+            - 0.5
+            - 1.0
+            - 1.5
+            - 2.0
+            - 2.5
+            - 3.0
+            - 3.5
+            - 4.0
+            - 4.5
+            - 5.0
+    RatingResult:
+      type: object
+      additionalProperties: false
+      properties:
+        movieTitle:
+          type: string
+        raterId:
+          type: string
+          description: Taken from request header `X-Rater-Id`
+        rating:
+          type: number
+          description: Rating value from `{0.5, 1.0, …, 5.0}`
+          enum:
+            - 0.5
+            - 1.0
+            - 1.5
+            - 2.0
+            - 2.5
+            - 3.0
+            - 3.5
+            - 4.0
+            - 4.5
+            - 5.0
+      required: [movieTitle, raterId, rating]
+    RatingAggregate:
+      type: object
+      additionalProperties: false
+      properties:
+        average:
+          type: number
+          description: Average rating; rounded to 1 decimal place
+        count:
+          type: integer
+          description: Total number of ratings
+      required: [average, count]
+    MoviePage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Movie"
+        nextCursor:
+          type: string
+          nullable: true
+          description: Next page cursor; `null` or omitted when no more data
+      required: [items]
+    Error:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          description: Error code (readable)
+        message:
+          type: string
+          description: Error description
+        details:
+          description: Additional information
+      required: [code, message]
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            bad:
+              value: { code: "BAD_REQUEST", message: "Invalid parameters" }
+    Unauthorized:
+      description: Unauthorized (missing or invalid `X-Rater-Id`)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            unauth:
+              value: { code: "UNAUTHORIZED", message: "Missing or invalid authentication information" }
+    Forbidden:
+      description: Forbidden (authenticated but no permission)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            forbid:
+              value: { code: "FORBIDDEN", message: "No permission to perform this operation" }
+    NotFound:
+      description: Resource not found (e.g., invalid movie title)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            missing:
+              value: { code: "NOT_FOUND", message: "Resource not found" }
