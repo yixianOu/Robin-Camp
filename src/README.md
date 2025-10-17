@@ -171,6 +171,9 @@ make test-e2e
 - 定义数据模型 (`internal/data/model.go`)
 - 更新配置 Proto 支持票房 API 和认证 (`internal/conf/conf.proto`)
 - 配置环境变量映射 (`configs/config.yaml`)
+- 修复 Go 版本兼容性：更新 `go.mod` 的 Go 版本至 1.23，工具链至 1.25.1
+- 更新 `golang.org/x/tools` 至 v0.38.0 解决代码生成错误
+- 成功执行 `go generate ./...` 生成 Wire 依赖注入代码
 
 ## License
 
