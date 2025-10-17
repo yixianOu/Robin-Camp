@@ -1,15 +1,25 @@
 server:
   http:
-    addr: 0.0.0.0:8000
-    timeout: 1s
+    addr: 0.0.0.0:8080
+    timeout: 30s
   grpc:
     addr: 0.0.0.0:9000
-    timeout: 1s
+    timeout: 30s
+
 data:
   database:
-    driver: mysql
-    source: root:root@tcp(127.0.0.1:3306)/test?parseTime=True&loc=Local
+    driver: postgres
+    source: postgres://app:app@localhost:5432/moviedb?sslmode=disable
   redis:
     addr: 127.0.0.1:6379
     read_timeout: 0.2s
     write_timeout: 0.2s
+
+boxoffice:
+  url: https://mock.apifox.com/m1/4288164-0-default
+  api_key: your-api-key
+  timeout: 3s
+  max_retries: 2
+
+auth:
+  token: your-auth-token

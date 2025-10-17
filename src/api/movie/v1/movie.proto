@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package api.movie.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "Robin-Camp/api/movie/v1;v1";
+
+// Movie Service
+service MovieService {
+  // Create a new movie
+  rpc CreateMovie(CreateMovieRequest) returns (CreateMovieReply) {
+    option (google.api.http) = {
+      post: "/movies"
+      body: "*"
+    };
+  }
+
+  // List movies with filters and pagination
+  rpc ListMovies(ListMoviesRequest) returns (ListMoviesReply) {
+    option (google.api.http) = {
+      get: "/movies"
+    };
+  }
+
+  // Submit or update a rating for a movie
+  rpc SubmitRating(SubmitRatingRequest) returns (SubmitRatingReply) {
+    option (google.api.http) = {
+      post: "/movies/{title}/ratings"
+      body: "*"
+    };
+  }
+
+  // Get aggregated rating for a movie
+  rpc GetRating(GetRatingRequest) returns (GetRatingReply) {
+    option (google.api.http) = {
+      get: "/movies/{title}/rating"
+    };
+  }
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckReply) {
+    option (google.api.http) = {
+      get: "/healthz"
+    };
+  }
+}
+
+// Messages for CreateMovie
+message CreateMovieRequest {
+  string title = 1;
+  string genre = 2;
+  string release_date = 3; // YYYY-MM-DD format
+  optional string distributor = 4;
+  optional int64 budget = 5;
+  optional string mpa_rating = 6;
+}
+
+message CreateMovieReply {
+  string id = 1;
+  string title = 2;
+  string release_date = 3;
+  string genre = 4;
+  optional string distributor = 5;
+  optional int64 budget = 6;
+  optional string mpa_rating = 7;
+  optional BoxOffice box_office = 8;
+}
+
+message BoxOffice {
+  Revenue revenue = 1;
+  string currency = 2;
+  string source = 3;
+  google.protobuf.Timestamp last_updated = 4;
+}
+
+message Revenue {
+  int64 worldwide = 1;
+  optional int64 opening_weekend_usa = 2;
+}
+
+// Messages for ListMovies
+message ListMoviesRequest {
+  optional string q = 1;
+  optional int32 year = 2;
+  optional string genre = 3;
+  optional string distributor = 4;
+  optional int64 budget = 5;
+  optional string mpa_rating = 6;
+  optional int32 limit = 7;
+  optional string cursor = 8;
+}
+
+message ListMoviesReply {
+  repeated MovieItem items = 1;
+  optional string next_cursor = 2;
+}
+
+message MovieItem {
+  string id = 1;
+  string title = 2;
+  string release_date = 3;
+  string genre = 4;
+  optional string distributor = 5;
+  optional int64 budget = 6;
+  optional string mpa_rating = 7;
+  optional BoxOffice box_office = 8;
+}
+
+// Messages for SubmitRating
+message SubmitRatingRequest {
+  string title = 1; // from path
+  double rating = 2; // from body
+}
+
+message SubmitRatingReply {
+  string movie_title = 1;
+  string rater_id = 2;
+  double rating = 3;
+}
+
+// Messages for GetRating
+message GetRatingRequest {
+  string title = 1;
+}
+
+message GetRatingReply {
+  double average = 1;
+  int32 count = 2;
+}
+
+// Messages for HealthCheck
+message HealthCheckRequest {}
+
+message HealthCheckReply {
+  string status = 1;
+}
