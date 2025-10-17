@@ -180,6 +180,13 @@ cd src && go test -v ./...
 - 更新 Data 层初始化：集成 PostgreSQL 和 Redis 连接
 - 更新 Wire ProviderSet：移除 greeter 引用，添加 Movie 和 Rating 相关provider
 - 更新 HTTP/gRPC Server：移除 greeter 服务注册，准备注册 MovieService
+- 安装依赖：gorm.io/gorm, gorm.io/driver/postgres, github.com/redis/go-redis/v9, github.com/google/uuid
+- 创建 Data 层实现：movie.go(含Redis缓存)、rating.go(含Redis ZSet排行榜)、boxoffice.go(HTTP客户端)
+- 创建 Service 层：movie.go (MovieService协议转换层)
+- 更新 wire.go 和 main.go：添加 BoxOffice 和 Auth 配置参数
+- 生成 Proto 代码：make config && make api
+- 生成 Wire 依赖注入代码：go generate ./...
+- 编译通过：所有 Go 语法错误已解决
 
 ## License
 

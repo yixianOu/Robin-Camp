@@ -3,15 +3,26 @@
 
 openapi: 3.0.3
 info:
-    title: Greeter API
-    description: The greeting service definition.
+    title: ""
     version: 0.0.1
 paths:
+    /healthz:
+        get:
+            tags:
+                - MovieService
+            description: Health check
+            operationId: MovieService_HealthCheck
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.movie.v1.HealthCheckReply'
     /helloworld/{name}:
         get:
             tags:
                 - Greeter
-                - subgroup
             description: Sends a greeting
             operationId: Greeter_SayHello
             parameters:
@@ -27,8 +38,233 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/helloworld.v1.HelloReply'
+    /movies:
+        get:
+            tags:
+                - MovieService
+            description: List movies with filters and pagination
+            operationId: MovieService_ListMovies
+            parameters:
+                - name: q
+                  in: query
+                  schema:
+                    type: string
+                - name: year
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: genre
+                  in: query
+                  schema:
+                    type: string
+                - name: distributor
+                  in: query
+                  schema:
+                    type: string
+                - name: budget
+                  in: query
+                  schema:
+                    type: string
+                - name: mpaRating
+                  in: query
+                  schema:
+                    type: string
+                - name: limit
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: cursor
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.movie.v1.ListMoviesReply'
+        post:
+            tags:
+                - MovieService
+            description: Create a new movie
+            operationId: MovieService_CreateMovie
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.movie.v1.CreateMovieRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.movie.v1.CreateMovieReply'
+    /movies/{title}/rating:
+        get:
+            tags:
+                - MovieService
+            description: Get aggregated rating for a movie
+            operationId: MovieService_GetRating
+            parameters:
+                - name: title
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.movie.v1.GetRatingReply'
+    /movies/{title}/ratings:
+        post:
+            tags:
+                - MovieService
+            description: Submit or update a rating for a movie
+            operationId: MovieService_SubmitRating
+            parameters:
+                - name: title
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/api.movie.v1.SubmitRatingRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/api.movie.v1.SubmitRatingReply'
 components:
     schemas:
+        api.movie.v1.BoxOffice:
+            type: object
+            properties:
+                revenue:
+                    $ref: '#/components/schemas/api.movie.v1.Revenue'
+                currency:
+                    type: string
+                source:
+                    type: string
+                lastUpdated:
+                    type: string
+                    format: date-time
+        api.movie.v1.CreateMovieReply:
+            type: object
+            properties:
+                id:
+                    type: string
+                title:
+                    type: string
+                releaseDate:
+                    type: string
+                genre:
+                    type: string
+                distributor:
+                    type: string
+                budget:
+                    type: string
+                mpaRating:
+                    type: string
+                boxOffice:
+                    $ref: '#/components/schemas/api.movie.v1.BoxOffice'
+        api.movie.v1.CreateMovieRequest:
+            type: object
+            properties:
+                title:
+                    type: string
+                genre:
+                    type: string
+                releaseDate:
+                    type: string
+                distributor:
+                    type: string
+                budget:
+                    type: string
+                mpaRating:
+                    type: string
+            description: Messages for CreateMovie
+        api.movie.v1.GetRatingReply:
+            type: object
+            properties:
+                average:
+                    type: number
+                    format: double
+                count:
+                    type: integer
+                    format: int32
+        api.movie.v1.HealthCheckReply:
+            type: object
+            properties:
+                status:
+                    type: string
+        api.movie.v1.ListMoviesReply:
+            type: object
+            properties:
+                items:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/api.movie.v1.MovieItem'
+                nextCursor:
+                    type: string
+        api.movie.v1.MovieItem:
+            type: object
+            properties:
+                id:
+                    type: string
+                title:
+                    type: string
+                releaseDate:
+                    type: string
+                genre:
+                    type: string
+                distributor:
+                    type: string
+                budget:
+                    type: string
+                mpaRating:
+                    type: string
+                boxOffice:
+                    $ref: '#/components/schemas/api.movie.v1.BoxOffice'
+        api.movie.v1.Revenue:
+            type: object
+            properties:
+                worldwide:
+                    type: string
+                openingWeekendUsa:
+                    type: string
+        api.movie.v1.SubmitRatingReply:
+            type: object
+            properties:
+                movieTitle:
+                    type: string
+                raterId:
+                    type: string
+                rating:
+                    type: number
+                    format: double
+        api.movie.v1.SubmitRatingRequest:
+            type: object
+            properties:
+                title:
+                    type: string
+                rating:
+                    type: number
+                    format: double
+            description: Messages for SubmitRating
         helloworld.v1.HelloReply:
             type: object
             properties:
@@ -37,3 +273,6 @@ components:
             description: The response message containing the greetings
 tags:
     - name: Greeter
+      description: The greeting service definition.
+    - name: MovieService
+      description: Movie Service
