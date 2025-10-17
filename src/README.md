@@ -176,6 +176,10 @@ cd src && go test -v ./...
 - 成功执行 `go generate ./...` 生成 Wire 依赖注入代码
 - 简化 Makefile，仅保留任务要求的三个命令：docker-up、docker-down、test-e2e
 - 更新 README.md 文档，调整快速开始步骤和开发命令说明
+- 清除 greeter 模板代码：删除 `internal/service/greeter.go`、`internal/biz/greeter.go`、`internal/data/greeter.go`
+- 更新 Data 层初始化：集成 PostgreSQL 和 Redis 连接
+- 更新 Wire ProviderSet：移除 greeter 引用，添加 Movie 和 Rating 相关provider
+- 更新 HTTP/gRPC Server：移除 greeter 服务注册，准备注册 MovieService
 
 ## License
 
