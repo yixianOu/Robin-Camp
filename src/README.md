@@ -187,6 +187,11 @@ cd src && go test -v ./...
 - 生成 Proto 代码：make config && make api
 - 生成 Wire 依赖注入代码：go generate ./...
 - 编译通过：所有 Go 语法错误已解决
+- 添加 Redis 服务到 docker-compose.yml（redis:7-alpine，持久化存储，健康检查）
+- 配置 app 服务依赖 Redis：添加 REDIS_ADDR 环境变量和健康检查依赖
+- 暴露 gRPC 端口 9000 到宿主机
+- 更新 .env.example 添加 REDIS_ADDR 配置项
+- 更新 configs/config.yaml 支持 REDIS_ADDR 环境变量替换
 
 ## License
 

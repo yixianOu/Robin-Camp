@@ -4,9 +4,10 @@
 1. Go 1.25.1
 2. Web Framework: Kratos v2
 3. Database: PostgreSQL 16
-4. ORM: GORM v2
-5. 依赖注入: Wire
-6. 协议: gRPC + HTTP (通过 Kratos 转码)
+4. Cache: Redis 7
+5. ORM: GORM v2
+6. 依赖注入: Wire
+7. 协议: gRPC + HTTP (通过 Kratos 转码)
 
 ## 整体架构设计
 
@@ -228,7 +229,13 @@ message Server {
         string addr = 2;
         google.protobuf.Duration timeout = 3;
     }
+    message GRPC {
+        string network = 1;
+        string addr = 2;
+        google.protobuf.Duration timeout = 3;
+    }
     HTTP http = 1;
+    GRPC grpc = 2;
 }
 
 message Data {
@@ -236,7 +243,13 @@ message Data {
         string driver = 1;
         string source = 2;
     }
+    message Redis {
+        string addr = 1;
+        google.protobuf.Duration read_timeout = 2;
+        google.protobuf.Duration write_timeout = 3;
+    }
     Database database = 1;
+    Redis redis = 2;
 }
 
 message BoxOffice {
@@ -315,18 +328,35 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "6379:6379"
+
   app:
     build: ./src
     ports:
       - "${PORT:-8080}:8080"
+      - "9000:9000"
     environment:
       PORT: ${PORT:-8080}
       DB_URL: postgres://${DB_USER:-app}:${DB_PASSWORD:-app}@db:5432/${DB_NAME:-moviedb}?sslmode=disable
+      REDIS_ADDR: redis:6379
       AUTH_TOKEN: ${AUTH_TOKEN}
       BOXOFFICE_URL: ${BOXOFFICE_URL}
       BOXOFFICE_API_KEY: ${BOXOFFICE_API_KEY}
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/healthz"]
@@ -336,6 +366,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
 ```
 
 ### 8. API实现要点
