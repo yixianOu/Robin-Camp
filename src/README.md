@@ -12,7 +12,7 @@
 
 ## 技术栈
 
-- Go 1.23+
+- Go 1.25.1
 - Kratos v2 (微服务框架)
 - PostgreSQL 16 (数据库)
 - GORM v2 (ORM)
@@ -20,12 +20,6 @@
 - Docker & Docker Compose
 
 ## 快速开始
-
-### 前置要求
-
-- Docker & Docker Compose
-- Go 1.23+ (本地开发)
-- Make
 
 ### 使用 Docker Compose 部署（推荐）
 
@@ -52,30 +46,27 @@ make docker-down
 
 ### 本地开发
 
-1. 安装 Kratos CLI：
-```bash
-go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
-```
-
-2. 安装依赖：
+1. 安装依赖：
 ```bash
 cd src
-make init
+go mod tidy
 ```
 
-3. 生成 Proto 代码：
+2. 生成 Proto 代码：
 ```bash
+cd src
 make api
 ```
 
-4. 生成 Wire 代码：
+3. 生成 Wire 代码：
 ```bash
-cd cmd/src
+cd src/cmd/src
 wire
 ```
 
-5. 运行应用：
+4. 运行应用：
 ```bash
+cd src
 go run ./cmd/src -conf ./configs
 ```
 
@@ -122,32 +113,41 @@ src/
 | BOXOFFICE_URL | 票房 API 地址 | - |
 | BOXOFFICE_API_KEY | 票房 API Key | - |
 
-## 开发命令
+## Makefile 命令
+
+项目提供以下 Makefile 命令：
+
+```bash
+# 构建并启动全部容器（包含数据库和应用）
+make docker-up
+
+# 停止并清理所有容器
+make docker-down
+
+# 运行端到端测试
+make test-e2e
+```
+
+## 常用开发命令
 
 ```bash
 # 安装依赖
-make init
+cd src && go mod tidy
 
 # 生成 Proto 代码
-make api
+cd src && make api
+
+# 生成 Wire 依赖注入代码
+cd src && go generate ./...
 
 # 构建应用
-make build
+cd src && go build -o ../bin/server ./cmd/src
 
-# 运行测试
-make test
+# 运行应用
+cd src && go run ./cmd/src -conf ./configs
 
-# Docker 构建
-make docker-build
-
-# 启动所有容器
-make docker-up
-
-# 停止所有容器
-make docker-down
-
-# 运行 E2E 测试
-make test-e2e
+# 运行单元测试
+cd src && go test -v ./...
 ```
 
 ## 设计文档
@@ -174,6 +174,8 @@ make test-e2e
 - 修复 Go 版本兼容性：更新 `go.mod` 的 Go 版本至 1.23，工具链至 1.25.1
 - 更新 `golang.org/x/tools` 至 v0.38.0 解决代码生成错误
 - 成功执行 `go generate ./...` 生成 Wire 依赖注入代码
+- 简化 Makefile，仅保留任务要求的三个命令：docker-up、docker-down、test-e2e
+- 更新 README.md 文档，调整快速开始步骤和开发命令说明
 
 ## License
 
