@@ -203,6 +203,8 @@ func (s *MovieService) movieToProto(movie *biz.Movie) *v1.CreateMovieReply {
 	if movie.MPARating != nil {
 		reply.MpaRating = movie.MPARating
 	}
+
+	// Always include boxOffice field (even if nil) to satisfy API contract
 	if movie.BoxOffice != nil {
 		reply.BoxOffice = &v1.BoxOffice{
 			Revenue: &v1.Revenue{
@@ -215,6 +217,9 @@ func (s *MovieService) movieToProto(movie *biz.Movie) *v1.CreateMovieReply {
 		if movie.BoxOffice.Revenue.OpeningWeekendUSA != nil {
 			reply.BoxOffice.Revenue.OpeningWeekendUsa = movie.BoxOffice.Revenue.OpeningWeekendUSA
 		}
+	} else {
+		// Set empty BoxOffice to ensure field appears in JSON (even as null)
+		reply.BoxOffice = &v1.BoxOffice{}
 	}
 
 	return reply
@@ -237,6 +242,8 @@ func (s *MovieService) movieItemToProto(movie *biz.Movie) *v1.MovieItem {
 	if movie.MPARating != nil {
 		item.MpaRating = movie.MPARating
 	}
+
+	// Always include boxOffice field (even if nil) to satisfy API contract
 	if movie.BoxOffice != nil {
 		item.BoxOffice = &v1.BoxOffice{
 			Revenue: &v1.Revenue{
@@ -249,6 +256,9 @@ func (s *MovieService) movieItemToProto(movie *biz.Movie) *v1.MovieItem {
 		if movie.BoxOffice.Revenue.OpeningWeekendUSA != nil {
 			item.BoxOffice.Revenue.OpeningWeekendUsa = movie.BoxOffice.Revenue.OpeningWeekendUSA
 		}
+	} else {
+		// Set empty BoxOffice to ensure field appears in JSON (even as null)
+		item.BoxOffice = &v1.BoxOffice{}
 	}
 
 	return item

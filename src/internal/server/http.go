@@ -8,6 +8,7 @@ import (
 	"src/internal/conf"
 	"src/internal/service"
 
+	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	khttp "github.com/go-kratos/kratos/v2/transport/http"
@@ -33,6 +34,20 @@ func customResponseEncoder(w http.ResponseWriter, r *http.Request, v interface{}
 	return khttp.DefaultResponseEncoder(w, r, v)
 }
 
+// Custom error encoder to handle CODEC errors as 422
+func customErrorEncoder(w http.ResponseWriter, r *http.Request, err error) {
+	// Convert Kratos error
+	se := errors.FromError(err)
+
+	// If this is a CODEC error (invalid JSON/proto), return 422 instead of 400
+	if se.Reason == "CODEC" && se.Code == 400 {
+		se = errors.New(422, "UNPROCESSABLE_ENTITY", se.Message)
+	}
+
+	// Use default error encoder with modified error
+	khttp.DefaultErrorEncoder(w, r, se)
+}
+
 // NewHTTPServer new an HTTP server.
 func NewHTTPServer(c *conf.Server, auth *conf.Auth, movieSvc *service.MovieService, logger log.Logger) *khttp.Server {
 	var opts = []khttp.ServerOption{
@@ -42,6 +57,7 @@ func NewHTTPServer(c *conf.Server, auth *conf.Auth, movieSvc *service.MovieServi
 			RaterIdMiddleware(),
 		),
 		khttp.ResponseEncoder(customResponseEncoder),
+		khttp.ErrorEncoder(customErrorEncoder),
 	}
 	if c.Http.Network != "" {
 		opts = append(opts, khttp.Network(c.Http.Network))
