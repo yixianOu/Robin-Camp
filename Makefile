@@ -7,7 +7,7 @@ docker-up:
 	@echo "Starting containers..."
 	docker compose up -d --build
 	@echo "Waiting for services to be healthy..."
-	@sleep 5
+	@sleep 1
 	@docker compose ps
 
 # Stop and remove containers

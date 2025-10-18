@@ -9,9 +9,9 @@ server:
 data:
   database:
     driver: postgres
-    source: ${DB_URL:postgres://app:app@localhost:5432/moviedb?sslmode=disable}
+    source: ${DB_URL:postgres://app:app@db:5432/moviedb?sslmode=disable}
   redis:
-    addr: ${REDIS_ADDR:127.0.0.1:6379}
+    addr: ${REDIS_ADDR:redis:6379}
     read_timeout: 0.2s
     write_timeout: 0.2s
 

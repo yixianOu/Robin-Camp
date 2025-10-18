@@ -425,6 +425,9 @@ cd src && go test -v ./...
 - 更新 HTTP Server 配置使用认证和 RaterID 中间件
 - 重新生成 Wire 依赖注入代码包含 Auth 配置
 - 编译通过：所有业务逻辑实现完成
+- 修复配置文件默认值：将 localhost 改为 Docker 服务名（db, redis）
+- 配置 .env 文件：设置 AUTH_TOKEN、DB_URL、REDIS_ADDR 等环境变量
+- 服务成功启动：数据库连接正常、Redis 连接正常、HTTP/gRPC 服务运行在 8080/9000 端口
 
 ## License
 

@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Movie Rating API
 
 # Stage 1: Builder
-FROM golang:1.23-alpine AS builder
+FROM golang:1-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git make protobuf-dev protoc
