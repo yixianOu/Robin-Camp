@@ -436,9 +436,9 @@ cd src && go test -v ./...
 - 修复数据库 schema：在 migrations/001_init_schema.sql 中添加 deleted_at 字段和索引
 - 恢复 GORM DeletedAt 字段：导入 gorm.io/gorm 包，启用软删除功能
 - 实现自定义错误编码器：将 CODEC 错误（400）转换为 422 状态码，满足无效 JSON 测试要求
-- 修复 boxOffice 字段序列化：CreateMovie 返回 null（上游失败），ListMovies 返回空对象（字段存在）
-- 更新 IMPLEMENTATION.md：记录所有实现细节、技术难点分析、测试结果
+- 修复 boxOffice 字段序列化：区分 movieToProto（返回 null）和 movieItemToProto（返回空对象）
 - 创建 TEST_ERRORS_EXPLANATION.md：解释测试中 ERROR 消息的含义（回退策略）
+- 精简 IMPLEMENTATION.md：从 1044 行压缩至 400 行，保留核心技术决策和解决方案
 - ✅ **E2E 测试全部通过：31/31 (100%)（清空数据后）**
 
 ## 当前状态
