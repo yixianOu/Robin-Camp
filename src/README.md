@@ -378,82 +378,16 @@ cd src && go test -v ./...
 - `Design.md` - 架构设计文档
 - `IMPLEMENTATION.md` - 实施细节文档
 
-## 操作日志
+## 当前状态
 
-- 初始化 Kratos 项目模板
-- 更新数据库配置为 PostgreSQL
-- 创建 Movie Service Proto 定义 (`api/movie/v1/movie.proto`)
-- 设计数据库 Schema (`migrations/001_init_schema.sql`)
-- 配置 Docker Compose 多服务编排
-- 实现多阶段 Dockerfile（非 root 用户运行）
-- 创建 Makefile 构建脚本
-- 定义业务逻辑接口 (`internal/biz/types.go`)
-- 实现电影创建与票房集成逻辑 (`internal/biz/movie.go`)
-- 实现评分 Upsert 逻辑 (`internal/biz/rating.go`)
-- 定义数据模型 (`internal/data/model.go`)
-- 更新配置 Proto 支持票房 API 和认证 (`internal/conf/conf.proto`)
-- 配置环境变量映射 (`configs/config.yaml`)
-- 修复 Go 版本兼容性：更新 `go.mod` 的 Go 版本至 1.23，工具链至 1.25.1
-- 更新 `golang.org/x/tools` 至 v0.38.0 解决代码生成错误
-- 成功执行 `go generate ./...` 生成 Wire 依赖注入代码
-- 简化 Makefile，仅保留任务要求的三个命令：docker-up、docker-down、test-e2e
-- 更新 README.md 文档，调整快速开始步骤和开发命令说明
-- 清除 greeter 模板代码：删除 `internal/service/greeter.go`、`internal/biz/greeter.go`、`internal/data/greeter.go`
-- 更新 Data 层初始化：集成 PostgreSQL 和 Redis 连接
-- 更新 Wire ProviderSet：移除 greeter 引用，添加 Movie 和 Rating 相关provider
-- 更新 HTTP/gRPC Server：移除 greeter 服务注册，准备注册 MovieService
-- 安装依赖：gorm.io/gorm, gorm.io/driver/postgres, github.com/redis/go-redis/v9, github.com/google/uuid
-- 创建 Data 层实现：movie.go(含Redis缓存)、rating.go(含Redis ZSet排行榜)、boxoffice.go(HTTP客户端)
-- 创建 Service 层：movie.go (MovieService协议转换层)
-- 更新 wire.go 和 main.go：添加 BoxOffice 和 Auth 配置参数
-- 生成 Proto 代码：make config && make api
-- 生成 Wire 依赖注入代码：go generate ./...
-- 编译通过：所有 Go 语法错误已解决
-- 添加 Redis 服务到 docker-compose.yml（redis:7-alpine，持久化存储，健康检查）
-- 配置 app 服务依赖 Redis：添加 REDIS_ADDR 环境变量和健康检查依赖
-- 暴露 gRPC 端口 9000 到宿主机
-- 更新 .env.example 添加 REDIS_ADDR 配置项
-- 更新 configs/config.yaml 支持 REDIS_ADDR 环境变量替换
-- 删除 api/helloworld/ 目录（greeter 模板代码）
-- 添加 Kratos DDD 架构说明到 README.md（四层架构、依赖注入、数据流向、CLI 命令）
-- 实现 Service 层完整业务逻辑（CreateMovie、ListMovies、SubmitRating、GetRating）
-- 实现 Service 层 Proto ↔ Biz 模型转换（时间格式、可选字段、BoxOffice 转换）
-- 实现 Data 层 ListMovies 分页查询（游标分页、动态过滤、LIMIT+1 检测下一页）
-- 实现游标编解码函数（Base64 编码 offset）
-- 实现认证中间件 AuthMiddleware（Bearer Token 验证写操作）
-- 实现 RaterIdMiddleware（提取 X-Rater-Id 并注入 context）
-- 更新 HTTP Server 配置使用认证和 RaterID 中间件
-- 重新生成 Wire 依赖注入代码包含 Auth 配置
-- 编译通过：所有业务逻辑实现完成
-- 修复配置文件默认值：将 localhost 改为 Docker 服务名（db, redis）
-- 配置 .env 文件：设置 AUTH_TOKEN、DB_URL、REDIS_ADDR 等环境变量
-- 服务成功启动：数据库连接正常、Redis 连接正常、HTTP/gRPC 服务运行在 8080/9000 端口
-- 添加环境变量覆盖逻辑：在 main.go 中从环境变量读取 AUTH_TOKEN、BOXOFFICE_URL 等配置
-- 修改认证中间件：仅对 CreateMovie 操作验证 Bearer Token，SubmitRating 仅需 X-Rater-Id
-- 实现自定义 HTTP 响应编码器：POST /movies 返回 201 Created 状态码
-- 修改错误状态码：验证错误返回 422（Unprocessable Entity），认证失败返回 401（Unauthorized）
-- 修复 Service 层错误处理：使用 Kratos errors 包返回正确的 HTTP 状态码（404/422）
 - 修复数据库 schema：在 migrations/001_init_schema.sql 中添加 deleted_at 字段和索引
 - 恢复 GORM DeletedAt 字段：导入 gorm.io/gorm 包，启用软删除功能
 - 实现自定义错误编码器：将 CODEC 错误（400）转换为 422 状态码，满足无效 JSON 测试要求
 - 修复 boxOffice 字段序列化：区分 movieToProto（返回 null）和 movieItemToProto（返回空对象）
 - 创建 TEST_ERRORS_EXPLANATION.md：解释测试中 ERROR 消息的含义（回退策略）
-- 精简 IMPLEMENTATION.md：从 1044 行压缩至 400 行，保留核心技术决策和解决方案
+- 精简 IMPLEMENTATION.md：从 1044 行压缩至 265 行，保留核心技术决策和解决方案
+- 修正 IMPLEMENTATION.md 中 Redis 缓存描述：评分聚合使用 SQL AVG() 而非 ZSet 估算，ZSet 仅用于排行榜
 - ✅ **E2E 测试全部通过：31/31 (100%)（清空数据后）**
-
-## 当前状态
-
-### ✅ E2E 测试结果
-- **通过**: 28/28 测试 (100%)
-- **失败**: 0 个测试
-- 所有功能测试通过：
-  - ✅ 健康检查
-  - ✅ 电影 CRUD 操作（创建、列表、搜索）
-  - ✅ 评分系统（提交、聚合、Upsert）
-  - ✅ 分页和过滤（游标分页、关键字、年份、类型）
-  - ✅ 认证和权限（Bearer Token、X-Rater-Id）
-  - ✅ 错误处理（401、404、422 状态码）
-  - ✅ 边界情况（无效 JSON、无效评分、缺失字段）
 
 ### 🎯 完成的功能
 1. **电影管理**：创建、查询、列表、搜索、分页
