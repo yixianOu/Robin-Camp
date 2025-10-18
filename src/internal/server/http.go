@@ -11,10 +11,12 @@ import (
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, movieSvc *service.MovieService, logger log.Logger) *http.Server {
+func NewHTTPServer(c *conf.Server, auth *conf.Auth, movieSvc *service.MovieService, logger log.Logger) *http.Server {
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
+			AuthMiddleware(auth.Token),
+			RaterIdMiddleware(),
 		),
 	}
 	if c.Http.Network != "" {

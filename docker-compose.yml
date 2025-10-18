@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${DB_NAME:-moviedb}
       POSTGRES_USER: ${DB_USER:-app}
@@ -21,7 +21,7 @@ services:
       - app-network
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data

@@ -2,6 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"time"
+
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	v1 "src/api/movie/v1"
 	"src/internal/biz"
@@ -25,26 +29,131 @@ func NewMovieService(movieUC *biz.MovieUseCase, ratingUC *biz.RatingUseCase) *Mo
 
 // CreateMovie implements movie creation
 func (s *MovieService) CreateMovie(ctx context.Context, req *v1.CreateMovieRequest) (*v1.CreateMovieReply, error) {
-	// TODO: Implement
-	return &v1.CreateMovieReply{}, nil
+	// Parse release date
+	releaseDate, err := time.Parse("2006-01-02", req.ReleaseDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid release_date format, expected YYYY-MM-DD: %w", err)
+	}
+
+	// Convert proto request to biz model
+	bizReq := &biz.CreateMovieRequest{
+		Title:       req.Title,
+		Genre:       req.Genre,
+		ReleaseDate: releaseDate,
+	}
+
+	if req.Distributor != nil {
+		bizReq.Distributor = req.Distributor
+	}
+	if req.Budget != nil {
+		bizReq.Budget = req.Budget
+	}
+	if req.MpaRating != nil {
+		bizReq.MPARating = req.MpaRating
+	}
+
+	// Call business logic
+	movie, err := s.movieUC.CreateMovie(ctx, bizReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert biz model to proto response
+	return s.movieToProto(movie), nil
 }
 
 // ListMovies implements movie listing
 func (s *MovieService) ListMovies(ctx context.Context, req *v1.ListMoviesRequest) (*v1.ListMoviesReply, error) {
-	// TODO: Implement
-	return &v1.ListMoviesReply{}, nil
+	// Convert proto request to biz query
+	query := &biz.MovieListQuery{
+		Limit: 10, // Default limit
+	}
+
+	if req.Q != nil {
+		query.Q = req.Q
+	}
+	if req.Year != nil {
+		query.Year = req.Year
+	}
+	if req.Genre != nil {
+		query.Genre = req.Genre
+	}
+	if req.Distributor != nil {
+		query.Distributor = req.Distributor
+	}
+	if req.Budget != nil {
+		query.Budget = req.Budget
+	}
+	if req.MpaRating != nil {
+		query.MPARating = req.MpaRating
+	}
+	if req.Limit != nil {
+		query.Limit = *req.Limit
+	}
+	if req.Cursor != nil {
+		query.Cursor = req.Cursor
+	}
+
+	// Call business logic
+	page, err := s.movieUC.ListMovies(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to proto response
+	reply := &v1.ListMoviesReply{
+		Items: make([]*v1.MovieItem, 0, len(page.Items)),
+	}
+
+	for _, movie := range page.Items {
+		reply.Items = append(reply.Items, s.movieItemToProto(movie))
+	}
+
+	if page.NextCursor != nil {
+		reply.NextCursor = page.NextCursor
+	}
+
+	return reply, nil
 }
 
 // SubmitRating implements rating submission
 func (s *MovieService) SubmitRating(ctx context.Context, req *v1.SubmitRatingRequest) (*v1.SubmitRatingReply, error) {
-	// TODO: Implement
-	return &v1.SubmitRatingReply{}, nil
+	// Extract rater ID from context (set by middleware)
+	raterID, ok := ctx.Value("rater_id").(string)
+	if !ok || raterID == "" {
+		return nil, fmt.Errorf("missing X-Rater-Id header")
+	}
+
+	// Call business logic
+	rating, isNew, err := s.ratingUC.SubmitRating(ctx, req.Title, raterID, req.Rating)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set response status based on whether it's new or updated
+	// Note: HTTP status code should be set by middleware/interceptor
+	// 201 for new, 200 for update
+	_ = isNew
+
+	return &v1.SubmitRatingReply{
+		MovieTitle: rating.MovieTitle,
+		RaterId:    rating.RaterID,
+		Rating:     rating.Rating,
+	}, nil
 }
 
 // GetRating implements rating aggregation
 func (s *MovieService) GetRating(ctx context.Context, req *v1.GetRatingRequest) (*v1.GetRatingReply, error) {
-	// TODO: Implement
-	return &v1.GetRatingReply{}, nil
+	// Call business logic
+	agg, err := s.ratingUC.GetRatingAggregate(ctx, req.Title)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1.GetRatingReply{
+		Average: agg.Average,
+		Count:   agg.Count,
+	}, nil
 }
 
 // HealthCheck implements health check
@@ -52,4 +161,74 @@ func (s *MovieService) HealthCheck(ctx context.Context, req *v1.HealthCheckReque
 	return &v1.HealthCheckReply{
 		Status: "ok",
 	}, nil
+}
+
+// Helper functions
+
+func (s *MovieService) movieToProto(movie *biz.Movie) *v1.CreateMovieReply {
+	reply := &v1.CreateMovieReply{
+		Id:          movie.ID,
+		Title:       movie.Title,
+		ReleaseDate: movie.ReleaseDate.Format("2006-01-02"),
+		Genre:       movie.Genre,
+	}
+
+	if movie.Distributor != nil {
+		reply.Distributor = movie.Distributor
+	}
+	if movie.Budget != nil {
+		reply.Budget = movie.Budget
+	}
+	if movie.MPARating != nil {
+		reply.MpaRating = movie.MPARating
+	}
+	if movie.BoxOffice != nil {
+		reply.BoxOffice = &v1.BoxOffice{
+			Revenue: &v1.Revenue{
+				Worldwide: movie.BoxOffice.Revenue.Worldwide,
+			},
+			Currency:    movie.BoxOffice.Currency,
+			Source:      movie.BoxOffice.Source,
+			LastUpdated: timestamppb.New(movie.BoxOffice.LastUpdated),
+		}
+		if movie.BoxOffice.Revenue.OpeningWeekendUSA != nil {
+			reply.BoxOffice.Revenue.OpeningWeekendUsa = movie.BoxOffice.Revenue.OpeningWeekendUSA
+		}
+	}
+
+	return reply
+}
+
+func (s *MovieService) movieItemToProto(movie *biz.Movie) *v1.MovieItem {
+	item := &v1.MovieItem{
+		Id:          movie.ID,
+		Title:       movie.Title,
+		ReleaseDate: movie.ReleaseDate.Format("2006-01-02"),
+		Genre:       movie.Genre,
+	}
+
+	if movie.Distributor != nil {
+		item.Distributor = movie.Distributor
+	}
+	if movie.Budget != nil {
+		item.Budget = movie.Budget
+	}
+	if movie.MPARating != nil {
+		item.MpaRating = movie.MPARating
+	}
+	if movie.BoxOffice != nil {
+		item.BoxOffice = &v1.BoxOffice{
+			Revenue: &v1.Revenue{
+				Worldwide: movie.BoxOffice.Revenue.Worldwide,
+			},
+			Currency:    movie.BoxOffice.Currency,
+			Source:      movie.BoxOffice.Source,
+			LastUpdated: timestamppb.New(movie.BoxOffice.LastUpdated),
+		}
+		if movie.BoxOffice.Revenue.OpeningWeekendUSA != nil {
+			item.BoxOffice.Revenue.OpeningWeekendUsa = movie.BoxOffice.Revenue.OpeningWeekendUSA
+		}
+	}
+
+	return item
 }

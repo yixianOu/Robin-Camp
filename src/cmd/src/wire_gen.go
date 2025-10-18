@@ -35,7 +35,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, boxOffice *conf.BoxOf
 	ratingUseCase := biz.NewRatingUseCase(movieRepo, ratingRepo, logger)
 	movieService := service.NewMovieService(movieUseCase, ratingUseCase)
 	grpcServer := server.NewGRPCServer(confServer, movieService, logger)
-	httpServer := server.NewHTTPServer(confServer, movieService, logger)
+	httpServer := server.NewHTTPServer(confServer, auth, movieService, logger)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
 		cleanup()

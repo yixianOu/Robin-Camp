@@ -416,6 +416,15 @@ cd src && go test -v ./...
 - 更新 configs/config.yaml 支持 REDIS_ADDR 环境变量替换
 - 删除 api/helloworld/ 目录（greeter 模板代码）
 - 添加 Kratos DDD 架构说明到 README.md（四层架构、依赖注入、数据流向、CLI 命令）
+- 实现 Service 层完整业务逻辑（CreateMovie、ListMovies、SubmitRating、GetRating）
+- 实现 Service 层 Proto ↔ Biz 模型转换（时间格式、可选字段、BoxOffice 转换）
+- 实现 Data 层 ListMovies 分页查询（游标分页、动态过滤、LIMIT+1 检测下一页）
+- 实现游标编解码函数（Base64 编码 offset）
+- 实现认证中间件 AuthMiddleware（Bearer Token 验证写操作）
+- 实现 RaterIdMiddleware（提取 X-Rater-Id 并注入 context）
+- 更新 HTTP Server 配置使用认证和 RaterID 中间件
+- 重新生成 Wire 依赖注入代码包含 Auth 配置
+- 编译通过：所有业务逻辑实现完成
 
 ## License
 
