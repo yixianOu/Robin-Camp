@@ -435,8 +435,9 @@ cd src && go test -v ./...
 - 修复 Service 层错误处理：使用 Kratos errors 包返回正确的 HTTP 状态码（404/422）
 - 修复数据库 schema：在 migrations/001_init_schema.sql 中添加 deleted_at 字段和索引
 - 恢复 GORM DeletedAt 字段：导入 gorm.io/gorm 包，启用软删除功能
-- 实现自定义错误编码器：将 CODEC 错误（400）转换为 422 状态码
-- 修复电影响应结构：始终包含 boxOffice 字段（即使为空对象），满足 API 契约
+- 实现自定义错误编码器：将 CODEC 错误（400）转换为 422 状态码，满足无效 JSON 测试要求
+- 修复电影响应结构：始终包含 boxOffice 字段（即使为空对象），解决 Proto3 optional 字段序列化问题
+- 更新 IMPLEMENTATION.md：记录所有实现细节、技术难点分析、测试结果
 - ✅ **E2E 测试全部通过：28/28 (100%)**
 
 ## 当前状态
