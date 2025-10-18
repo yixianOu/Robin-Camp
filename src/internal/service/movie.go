@@ -204,7 +204,8 @@ func (s *MovieService) movieToProto(movie *biz.Movie) *v1.CreateMovieReply {
 		reply.MpaRating = movie.MPARating
 	}
 
-	// Always include boxOffice field (even if nil) to satisfy API contract
+	// BoxOffice: keep as nil if not present (upstream failure)
+	// This allows JSON to serialize it as null in create response
 	if movie.BoxOffice != nil {
 		reply.BoxOffice = &v1.BoxOffice{
 			Revenue: &v1.Revenue{
@@ -217,10 +218,8 @@ func (s *MovieService) movieToProto(movie *biz.Movie) *v1.CreateMovieReply {
 		if movie.BoxOffice.Revenue.OpeningWeekendUSA != nil {
 			reply.BoxOffice.Revenue.OpeningWeekendUsa = movie.BoxOffice.Revenue.OpeningWeekendUSA
 		}
-	} else {
-		// Set empty BoxOffice to ensure field appears in JSON (even as null)
-		reply.BoxOffice = &v1.BoxOffice{}
 	}
+	// Note: Do NOT set empty BoxOffice here - let it be nil for null serialization
 
 	return reply
 }
