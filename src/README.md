@@ -428,6 +428,31 @@ cd src && go test -v ./...
 - 修复配置文件默认值：将 localhost 改为 Docker 服务名（db, redis）
 - 配置 .env 文件：设置 AUTH_TOKEN、DB_URL、REDIS_ADDR 等环境变量
 - 服务成功启动：数据库连接正常、Redis 连接正常、HTTP/gRPC 服务运行在 8080/9000 端口
+- 移除 GORM DeletedAt 字段：修复 "column movies.deleted_at does not exist" SQL 错误
+- 添加环境变量覆盖逻辑：在 main.go 中从环境变量读取 AUTH_TOKEN、BOXOFFICE_URL 等配置
+- 修改认证中间件：仅对 CreateMovie 操作验证 Bearer Token，SubmitRating 仅需 X-Rater-Id
+- 实现自定义 HTTP 响应编码器：POST /movies 返回 201 Created 状态码
+- 修改错误状态码：验证错误返回 422（Unprocessable Entity），认证失败返回 401（Unauthorized）
+- 修复 Service 层错误处理：使用 Kratos errors 包返回正确的 HTTP 状态码（404/422）
+- E2E 测试改进：从 14/38 通过提升到 22/38，再到 29/33（重置数据库后）
+- 修复数据库 schema：在 migrations/001_init_schema.sql 中添加 deleted_at 字段和索引
+- 恢复 GORM DeletedAt 字段：导入 gorm.io/gorm 包，启用软删除功能
+- 重建数据库并测试：29/33 测试通过，软删除功能正常工作
+
+## 当前状态
+
+### E2E 测试结果
+- **通过**: 29/33 测试
+- **失败**: 4 个测试
+  1. 重复电影创建返回 500（数据库唯一约束冲突，测试脚本未清理数据导致）
+  2. 电影响应结构验证失败（测试脚本期望所有电影都有 `boxOffice` 字段，但 Proto 定义为 optional）
+  3. 新评分返回 200 而非 201（Upsert 语义：首次提交期望 201，更新期望 200）
+  4. 无效 JSON 返回 400 而非 422（Kratos CODEC 错误，需自定义错误编码器）
+
+### 已知问题
+- Kratos JSON 编码器默认不包含 `optional` 字段的 null 值（Proto3 行为）
+- 评分 Upsert 操作无法区分新增（201）和更新（200），需传递元数据到 HTTP 响应编码器
+- CODEC 错误（400）无法通过 Service 层修改，需在 HTTP Server 层自定义错误编码器
 
 ## License
 

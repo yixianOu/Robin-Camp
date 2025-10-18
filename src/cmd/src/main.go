@@ -74,6 +74,23 @@ func main() {
 		panic(err)
 	}
 
+	// Override with environment variables
+	if dbURL := os.Getenv("DB_URL"); dbURL != "" {
+		bc.Data.Database.Source = dbURL
+	}
+	if redisAddr := os.Getenv("REDIS_ADDR"); redisAddr != "" {
+		bc.Data.Redis.Addr = redisAddr
+	}
+	if authToken := os.Getenv("AUTH_TOKEN"); authToken != "" {
+		bc.Auth.Token = authToken
+	}
+	if boxOfficeURL := os.Getenv("BOXOFFICE_URL"); boxOfficeURL != "" {
+		bc.Boxoffice.Url = boxOfficeURL
+	}
+	if boxOfficeKey := os.Getenv("BOXOFFICE_API_KEY"); boxOfficeKey != "" {
+		bc.Boxoffice.ApiKey = boxOfficeKey
+	}
+
 	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Boxoffice, bc.Auth, logger)
 	if err != nil {
 		panic(err)

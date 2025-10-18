@@ -19,9 +19,8 @@ func AuthMiddleware(token string) middleware.Middleware {
 				return nil, errors.Unauthorized("UNAUTHORIZED", "missing transport info")
 			}
 
-			// Only apply auth to write operations (POST requests)
-			if tr.Operation() == "/api.movie.v1.MovieService/CreateMovie" ||
-				tr.Operation() == "/api.movie.v1.MovieService/SubmitRating" {
+			// Only apply auth to CreateMovie (NOT SubmitRating, it uses X-Rater-Id only)
+			if tr.Operation() == "/api.movie.v1.MovieService/CreateMovie" {
 
 				// Extract Authorization header
 				authHeader := tr.RequestHeader().Get("Authorization")
@@ -61,7 +60,7 @@ func RaterIdMiddleware() middleware.Middleware {
 				// Extract X-Rater-Id header
 				raterID := tr.RequestHeader().Get("X-Rater-Id")
 				if raterID == "" {
-					return nil, errors.BadRequest("BAD_REQUEST", "missing X-Rater-Id header")
+					return nil, errors.Unauthorized("UNAUTHORIZED", "missing X-Rater-Id header")
 				}
 
 				// Inject rater ID into context

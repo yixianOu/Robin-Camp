@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS movies (
     box_office_last_updated TIMESTAMP WITH TIME ZONE,
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Create indexes for efficient querying
@@ -28,6 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_movies_genre ON movies(LOWER(genre));
 CREATE INDEX IF NOT EXISTS idx_movies_distributor ON movies(LOWER(distributor));
 CREATE INDEX IF NOT EXISTS idx_movies_budget ON movies(budget);
 CREATE INDEX IF NOT EXISTS idx_movies_mpa_rating ON movies(mpa_rating);
+CREATE INDEX IF NOT EXISTS idx_movies_deleted_at ON movies(deleted_at);
 
 -- Create ratings table
 CREATE TABLE IF NOT EXISTS ratings (

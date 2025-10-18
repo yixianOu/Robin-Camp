@@ -16,10 +16,10 @@ data:
     write_timeout: 0.2s
 
 boxoffice:
-  url: https://mock.apifox.com/m1/4288164-0-default
-  api_key: your-api-key
+  url: ${BOXOFFICE_URL:https://mock.apifox.com/m1/4288164-0-default}
+  api_key: ${BOXOFFICE_API_KEY:your-api-key}
   timeout: 3s
   max_retries: 2
 
 auth:
-  token: your-auth-token
+  token: ${AUTH_TOKEN:your-auth-token}
