@@ -92,6 +92,228 @@ src/
 └── third_party/          # 第三方 Proto 文件
 ```
 
+## Kratos DDD 架构说明
+
+### 领域驱动设计 (DDD) 分层
+
+Kratos 遵循严格的 DDD 分层架构，将代码按职责划分为四层：
+
+#### 1. API 层 (`api/`)
+**作用**：定义服务接口和数据契约
+- 使用 Protobuf 定义服务 API（gRPC + HTTP）
+- 通过 `google.api.http` 注解实现 gRPC-HTTP 转码
+- 生成的代码包括：
+  - `*.pb.go` - Protobuf 消息定义
+  - `*_grpc.pb.go` - gRPC 服务端/客户端代码
+  - `*_http.pb.go` - HTTP 服务端/客户端代码
+
+**生成命令**：
+```bash
+# 安装 protoc 工具链
+make init
+
+# 生成 API 代码（api/ 目录下的 proto）
+make api
+
+# 生成配置代码（internal/conf/ 下的 proto）
+make config
+```
+
+#### 2. Service 层 (`internal/service/`)
+**作用**：协议转换和编排
+- 实现 API 层定义的服务接口
+- 负责 Protobuf ↔ 业务模型的转换
+- 调用 Biz 层完成业务逻辑
+- 不包含业务规则，仅做数据适配
+
+**示例**：
+```go
+// service/movie.go
+func (s *MovieService) CreateMovie(ctx context.Context, req *v1.CreateMovieRequest) (*v1.CreateMovieReply, error) {
+    // 1. Proto → Biz 模型转换
+    bizReq := convertProtoToBiz(req)
+    
+    // 2. 调用业务层
+    movie, err := s.movieUC.CreateMovie(ctx, bizReq)
+    
+    // 3. Biz → Proto 模型转换
+    return convertBizToProto(movie), nil
+}
+```
+
+#### 3. Biz 层 (`internal/biz/`)
+**作用**：核心业务逻辑（领域层）
+- 包含业务规则、领域模型、用例（UseCase）
+- 定义 Repository 接口（由 Data 层实现）
+- 编排多个 Repository 完成复杂业务流程
+- 不依赖具体的数据库或外部服务实现
+
+**关键概念**：
+- **领域模型**：业务实体（如 `Movie`, `Rating`）
+- **UseCase**：业务用例（如 `MovieUseCase`, `RatingUseCase`）
+- **Repository 接口**：数据访问抽象（如 `MovieRepo`, `RatingRepo`）
+
+**示例**：
+```go
+// biz/movie.go
+type MovieUseCase struct {
+    repo            MovieRepo              // 依赖接口，非实现
+    boxOfficeClient BoxOfficeClient
+}
+
+func (uc *MovieUseCase) CreateMovie(ctx context.Context, req *CreateMovieRequest) (*Movie, error) {
+    // 1. 生成业务 ID
+    movie := &Movie{ID: "m_" + uuid.New().String(), ...}
+    
+    // 2. 调用外部服务（票房数据）
+    boxOffice, _ := uc.boxOfficeClient.GetBoxOffice(ctx, req.Title)
+    
+    // 3. 业务规则：合并数据（用户提供优先）
+    mergeBoxOfficeData(movie, boxOffice)
+    
+    // 4. 持久化
+    return uc.repo.CreateMovie(ctx, movie)
+}
+```
+
+#### 4. Data 层 (`internal/data/`)
+**作用**：数据访问实现（基础设施层）
+- 实现 Biz 层定义的 Repository 接口
+- 管理数据库连接、缓存、外部 API 调用
+- 处理 GORM 模型 ↔ 领域模型转换
+- 实现缓存策略（Redis）、事务管理
+
+**组件**：
+- `data.go` - 初始化数据库/Redis 连接，提供 `*Data` 结构
+- `model.go` - GORM 数据模型（对应数据库表）
+- `movie.go` - `MovieRepo` 接口实现（含 Redis 缓存）
+- `rating.go` - `RatingRepo` 接口实现（含 Redis ZSet 排行榜）
+- `boxoffice.go` - 外部 HTTP 客户端实现
+
+**示例**：
+```go
+// data/movie.go
+type movieRepo struct {
+    data *Data  // 包含 db *gorm.DB 和 rdb *redis.Client
+}
+
+func (r *movieRepo) CreateMovie(ctx context.Context, movie *biz.Movie) error {
+    // 1. 领域模型 → GORM 模型
+    m := bizToModel(movie)
+    
+    // 2. 数据库操作
+    if err := r.data.db.Create(&m).Error; err != nil {
+        return err
+    }
+    
+    // 3. 更新缓存
+    r.data.rdb.Set(ctx, "movie:"+movie.Title, json, 15*time.Minute)
+    
+    return nil
+}
+```
+
+#### 5. Server 层 (`internal/server/`)
+**作用**：服务器配置和中间件
+- 初始化 HTTP/gRPC 服务器
+- 注册服务路由
+- 配置中间件（认证、日志、恢复）
+
+**生成命令**：
+```bash
+# 创建新的 HTTP/gRPC 服务器配置（初始化项目时）
+kratos new <project-name>
+```
+
+#### 6. Conf 层 (`internal/conf/`)
+**作用**：配置结构定义
+- 使用 Protobuf 定义配置结构
+- 通过 Kratos 配置加载器读取 YAML/JSON
+- 支持环境变量替换
+
+**生成命令**：
+```bash
+make config  # 生成 conf.pb.go
+```
+
+### Wire 依赖注入
+
+Kratos 使用 [Wire](https://github.com/google/wire) 实现编译时依赖注入：
+
+**配置文件** (`cmd/src/wire.go`):
+```go
+//go:build wireinject
+// +build wireinject
+
+func wireApp(*conf.Server, *conf.Data, *conf.BoxOffice, *conf.Auth, log.Logger) (*kratos.App, func(), error) {
+    panic(wire.Build(server.ProviderSet, data.ProviderSet, biz.ProviderSet, service.ProviderSet, newApp))
+}
+```
+
+**生成命令**：
+```bash
+# 在 cmd/src/ 目录执行
+go generate ./...
+# 或直接运行
+wire
+```
+
+**生成文件**：`wire_gen.go` - 包含完整的依赖注入代码
+
+### Kratos CLI 命令总结
+
+```bash
+# 1. 创建新项目（生成标准目录结构）
+kratos new <project-name>
+
+# 2. 生成 Proto Service（生成 api/ 下的模板）
+kratos proto add api/<service>/<version>/<service>.proto
+
+# 3. 生成 Service 实现（根据 proto 生成 service 层代码）
+kratos proto client api/<service>/<version>/<service>.proto
+
+# 4. 生成 Server 代码（生成 internal/server/*.go）
+kratos proto server api/<service>/<version>/<service>.proto -t internal/service
+
+# 本项目实际使用的命令
+make init     # 安装 protoc 工具链
+make api      # 生成 api/movie/v1/*.pb.go
+make config   # 生成 internal/conf/conf.pb.go
+go generate   # 生成 wire_gen.go
+```
+
+### 数据流向示例
+
+**创建电影请求流程**：
+```
+HTTP Request (POST /movies)
+    ↓
+HTTP Server (internal/server/http.go) + 认证中间件
+    ↓
+MovieService.CreateMovie (internal/service/movie.go)
+    - Proto → Biz 模型转换
+    ↓
+MovieUseCase.CreateMovie (internal/biz/movie.go)
+    - 生成业务 ID
+    - 调用 BoxOfficeClient 获取票房数据
+    - 业务规则：合并数据
+    ↓
+MovieRepo.CreateMovie (internal/data/movie.go)
+    - Biz → GORM 模型转换
+    - 写入 PostgreSQL
+    - 更新 Redis 缓存
+    ↓
+返回结果 (201 + Location header)
+```
+
+### 关键设计原则
+
+1. **依赖倒置**：Biz 层定义接口，Data 层实现接口
+2. **单向依赖**：外层依赖内层（Service → Biz → Data），反向通过接口
+3. **领域隔离**：Biz 层使用纯业务模型，不依赖 ORM 或 Proto
+4. **协议无关**：Biz 层不知道上层是 HTTP 还是 gRPC
+5. **可测试性**：每层都可以通过 Mock 接口独立测试
+
 ## API 文档
 
 详见项目根目录的 `openapi.yml` 文件。
@@ -192,6 +414,8 @@ cd src && go test -v ./...
 - 暴露 gRPC 端口 9000 到宿主机
 - 更新 .env.example 添加 REDIS_ADDR 配置项
 - 更新 configs/config.yaml 支持 REDIS_ADDR 环境变量替换
+- 删除 api/helloworld/ 目录（greeter 模板代码）
+- 添加 Kratos DDD 架构说明到 README.md（四层架构、依赖注入、数据流向、CLI 命令）
 
 ## License
 
