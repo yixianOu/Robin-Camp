@@ -24,10 +24,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # Stage 2: Runtime
 FROM alpine:3
 
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata wget && \
-    update-ca-certificates
-
 # Create non-root user
 RUN addgroup -g 1000 appuser && \
     adduser -D -u 1000 -G appuser appuser
