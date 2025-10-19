@@ -262,3 +262,6 @@ BOXOFFICE_API_KEY=mock-key
 **文档版本**: v2.0  
 **最后更新**: 2025-01-19  
 **状态**: ✅ 项目完成，生产就绪
+
+# TODO
+1.环境变量，config/docker-compose

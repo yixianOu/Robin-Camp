@@ -399,6 +399,102 @@ cd src && go test -v ./...
 
 本节记录项目开发过程中执行的关键操作,便于回溯与复现。
 
+### 2025-01-19：时区统一配置
+
+**问题**：应用层使用 UTC (`time.Now().UTC()`)，但数据库连接和容器未指定时区，可能导致时区混淆。
+
+**时区不一致的风险**：
+```go
+// Go: 存储 UTC 时间 2025-01-19 10:00:00 UTC
+t := time.Now().UTC()
+
+// PostgreSQL: 如果时区是 Asia/Shanghai
+// 会理解为 2025-01-19 10:00:00+08:00
+// 转换为 UTC 存储：2025-01-19 02:00:00 UTC
+// ❌ 数据错误！时间少了 8 小时！
+```
+
+**最佳实践：三层时区统一**
+```
+应用层 (Go)        → time.Now().UTC() ✅
+传输层 (DB连接)    → timezone=UTC     ✅ (已修复)
+存储层 (PostgreSQL)→ TZ=UTC           ✅ (已修复)
+```
+
+**修复步骤**：
+```bash
+# 1. 数据库连接字符串添加 timezone=UTC
+# 编辑 src/configs/config.yaml
+source: postgres://...?sslmode=disable&timezone=UTC
+
+# 2. PostgreSQL 容器设置时区
+# 编辑 docker-compose.yml (db 服务)
+environment:
+  TZ: UTC
+  PGTZ: UTC
+
+# 3. 应用容器设置时区
+# 编辑 docker-compose.yml (app 服务)
+environment:
+  TZ: UTC
+  DB_URL: postgres://...?timezone=UTC
+
+# 4. 验证时区设置
+docker compose up -d
+docker compose exec db psql -U app -d moviedb -c "SHOW timezone;"
+# 应显示：UTC
+
+# 5. 测试
+bash ./e2e-test.sh
+```
+
+**PostgreSQL 时区参数对比**：
+| 参数 | 作用域 | 优先级 |
+|------|--------|--------|
+| `TZ=UTC` (容器环境变量) | 整个容器 | 低 |
+| `PGTZ=UTC` (PostgreSQL 专用) | PostgreSQL 进程 | 中 |
+| `timezone=UTC` (连接字符串) | 当前会话 | 高 ✅ |
+
+**收益**：
+- ✅ 避免跨时区数据混淆
+- ✅ GORM autoCreateTime 使用正确时区
+- ✅ 查询结果一致性
+- ✅ 符合国际化最佳实践
+
+### 2025-01-19：UUID v7 错误处理修复
+
+**问题**：`uuid.NewV7()` 返回 `(UUID, error)`，但 error 被忽略，可能导致零值 UUID。
+
+**为什么 NewV7() 会返回错误？**
+- 内部调用 `crypto/rand.Read()` 获取随机数
+- 系统随机数生成器失败时返回 error（极少情况：`/dev/urandom` 不可读、熵池不足）
+- 如果失败，UUID 是零值 `00000000-0000-0000-0000-000000000000`，导致主键冲突
+
+**UUID 版本对比**：
+| 版本 | 生成方式 | 递增性 | 错误处理 | 适用场景 |
+|------|---------|--------|---------|---------|
+| UUID v4 | 完全随机 | ❌ 无序 | `uuid.New()` 不返回 error | 分布式，无序 |
+| UUID v7 | 时间戳 + 随机 | ✅ 递增 | `uuid.NewV7()` 返回 error | 分布式 + 性能 |
+
+**修复**：
+```bash
+# 编辑 src/internal/biz/movie.go，添加错误检查
+movieID, err := uuid.NewV7()
+if err != nil {
+    return nil, fmt.Errorf("failed to generate movie ID: %w", err)
+}
+
+# 验证
+cd src && go build ./...
+cd .. && bash ./e2e-test.sh
+# 结果：28/28 tests passed ✅
+```
+
+**收益**：
+- ✅ 避免零值 UUID 导致的主键冲突
+- ✅ 符合 Go 错误处理最佳实践
+- ✅ UUID v7 保证时间递增，索引性能优于 UUID v4
+
 ### 2025-01-19：参数校验分层重构
 
 **问题**：参数校验逻辑放在了 Biz 层,违反了 DDD 分层职责原则。

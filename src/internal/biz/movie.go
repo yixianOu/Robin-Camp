@@ -27,12 +27,15 @@ func NewMovieUseCase(repo MovieRepo, boxOfficeClient BoxOfficeClient, logger log
 
 // CreateMovie creates a new movie and fetches box office data
 func (uc *MovieUseCase) CreateMovie(ctx context.Context, req *CreateMovieRequest) (*Movie, error) {
-	// Generate movie ID
-	movieID := fmt.Sprintf("m_%s", uuid.New().String())
+	// Generate movie ID (UUID v7: time-ordered, distributed-friendly)
+	movieID, err := uuid.NewV7()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate movie ID: %w", err)
+	}
 
 	// Create base movie object
 	movie := &Movie{
-		ID:          movieID,
+		ID:          movieID.String(),
 		Title:       req.Title,
 		ReleaseDate: req.ReleaseDate,
 		Genre:       req.Genre,
