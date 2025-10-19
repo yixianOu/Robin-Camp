@@ -52,7 +52,7 @@ func RaterIdMiddleware() middleware.Middleware {
 			// Get transport info
 			tr, ok := transport.FromServerContext(ctx)
 			if !ok {
-				return handler(ctx, req)
+				return nil, errors.Unauthorized("UNAUTHORIZED", "missing transport info")
 			}
 
 			// Only apply to SubmitRating operation

@@ -378,17 +378,6 @@ cd src && go test -v ./...
 - `Design.md` - 架构设计文档
 - `IMPLEMENTATION.md` - 实施细节文档
 
-## 当前状态
-
-- 修复数据库 schema：在 migrations/001_init_schema.sql 中添加 deleted_at 字段和索引
-- 恢复 GORM DeletedAt 字段：导入 gorm.io/gorm 包，启用软删除功能
-- 实现自定义错误编码器：将 CODEC 错误（400）转换为 422 状态码，满足无效 JSON 测试要求
-- 修复 boxOffice 字段序列化：区分 movieToProto（返回 null）和 movieItemToProto（返回空对象）
-- 创建 TEST_ERRORS_EXPLANATION.md：解释测试中 ERROR 消息的含义（回退策略）
-- 精简 IMPLEMENTATION.md：从 1044 行压缩至 265 行，保留核心技术决策和解决方案
-- 修正 IMPLEMENTATION.md 中 Redis 缓存描述：评分聚合使用 SQL AVG() 而非 ZSet 估算，ZSet 仅用于排行榜
-- ✅ **E2E 测试全部通过：31/31 (100%)（清空数据后）**
-
 ### 🎯 完成的功能
 1. **电影管理**：创建、查询、列表、搜索、分页
 2. **评分系统**：提交评分（Upsert 语义）、聚合计算、Redis 缓存
