@@ -9,7 +9,7 @@ server:
 data:
   database:
     driver: postgres
-    source: ${DB_URL:postgres://app:app@db:5432/moviedb?sslmode=disable}
+    source: ${DB_URL:postgres://app:app@db:5432/moviedb?sslmode=disable&timezone=UTC}
   redis:
     addr: ${REDIS_ADDR:redis:6379}
     read_timeout: 0.2s

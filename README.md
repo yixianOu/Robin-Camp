@@ -30,5 +30,8 @@
 1. 使用uuid7作为电影ID，保证分布式环境下的唯一性和有序性。
 2. 使用time.Now().UTC()作为时间戳，避免时区问题。
 
+### 单一源配置读取
+1. .env中定义了部分配置，而kratos框架从config.yaml中读取配置，为了满足dont repeat yourself原则，config.yaml中的配置项使用环境变量占位符，而docker compose读取.env并在启动容器时注入环境变量，kratos解析到config.yaml中的环境变量占位符，就会读取环境变量作为配置值。
+
 ## 未来可能的迭代
 1. 使用validator中间件而不是在service层校验请求参数。使用customErrorEncoder丰富validator的错误响应（如http状态码）。

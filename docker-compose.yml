@@ -6,6 +6,7 @@ services:
       POSTGRES_DB: ${DB_NAME:-moviedb}
       POSTGRES_USER: ${DB_USER:-app}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-app}
+      PGTZ: UTC  # PostgreSQL-specific timezone
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d:ro
@@ -43,7 +44,7 @@ services:
       - "9000:9000"
     environment:
       PORT: ${PORT:-8080}
-      DB_URL: postgres://${DB_USER:-app}:${DB_PASSWORD:-app}@db:5432/${DB_NAME:-moviedb}?sslmode=disable
+      DB_URL: postgres://${DB_USER:-app}:${DB_PASSWORD:-app}@db:5432/${DB_NAME:-moviedb}?sslmode=disable&timezone=UTC
       REDIS_ADDR: redis:6379
       AUTH_TOKEN: ${AUTH_TOKEN}
       BOXOFFICE_URL: ${BOXOFFICE_URL}
