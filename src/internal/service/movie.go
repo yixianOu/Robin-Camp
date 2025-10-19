@@ -13,6 +13,15 @@ import (
 	"src/internal/biz"
 )
 
+// localTimezone is the timezone for API responses
+// Change this to your desired timezone (e.g., "America/New_York", "Europe/London")
+var localTimezone = time.FixedZone("CST", 8*3600) // UTC+8 (China Standard Time)
+
+// convertToLocalTime converts UTC time to local timezone for API response
+func convertToLocalTime(utcTime time.Time) time.Time {
+	return utcTime.In(localTimezone)
+}
+
 // MovieService implements the MovieService API
 type MovieService struct {
 	v1.UnimplementedMovieServiceServer
@@ -208,13 +217,15 @@ func (s *MovieService) movieToProto(movie *biz.Movie) *v1.CreateMovieReply {
 	// BoxOffice: keep as nil if not present (upstream failure)
 	// This allows JSON to serialize it as null in create response
 	if movie.BoxOffice != nil {
+		// Convert UTC time to local timezone for API response
+		localTime := convertToLocalTime(movie.BoxOffice.LastUpdated)
 		reply.BoxOffice = &v1.BoxOffice{
 			Revenue: &v1.Revenue{
 				Worldwide: movie.BoxOffice.Revenue.Worldwide,
 			},
 			Currency:    movie.BoxOffice.Currency,
 			Source:      movie.BoxOffice.Source,
-			LastUpdated: timestamppb.New(movie.BoxOffice.LastUpdated),
+			LastUpdated: timestamppb.New(localTime),
 		}
 		if movie.BoxOffice.Revenue.OpeningWeekendUSA != nil {
 			reply.BoxOffice.Revenue.OpeningWeekendUsa = movie.BoxOffice.Revenue.OpeningWeekendUSA
@@ -245,13 +256,15 @@ func (s *MovieService) movieItemToProto(movie *biz.Movie) *v1.MovieItem {
 
 	// Always include boxOffice field (even if nil) to satisfy API contract
 	if movie.BoxOffice != nil {
+		// Convert UTC time to local timezone for API response
+		localTime := convertToLocalTime(movie.BoxOffice.LastUpdated)
 		item.BoxOffice = &v1.BoxOffice{
 			Revenue: &v1.Revenue{
 				Worldwide: movie.BoxOffice.Revenue.Worldwide,
 			},
 			Currency:    movie.BoxOffice.Currency,
 			Source:      movie.BoxOffice.Source,
-			LastUpdated: timestamppb.New(movie.BoxOffice.LastUpdated),
+			LastUpdated: timestamppb.New(localTime),
 		}
 		if movie.BoxOffice.Revenue.OpeningWeekendUSA != nil {
 			item.BoxOffice.Revenue.OpeningWeekendUsa = movie.BoxOffice.Revenue.OpeningWeekendUSA

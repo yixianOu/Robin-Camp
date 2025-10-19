@@ -399,6 +399,77 @@ cd src && go test -v ./...
 
 本节记录项目开发过程中执行的关键操作,便于回溯与复现。
 
+### 2025-01-19：UTC 存储 + 本地时间返回
+
+**最佳实践**：存储 UTC，API 返回本地时间
+
+**架构设计**：
+```
+存储层 (数据库)   → UTC 时间 (标准化存储)
+应用层 (Biz)     → UTC 时间 (time.Now().UTC())
+传输层 (Service) → 本地时间 (转换后返回 API)
+显示层 (前端)    → 本地时间 (直接使用)
+```
+
+**实现步骤**：
+```bash
+# 1. Service 层添加时区转换函数
+# 编辑 src/internal/service/movie.go
+
+# 定义本地时区
+var localTimezone = time.FixedZone("CST", 8*3600) // UTC+8
+
+# 转换函数
+func convertToLocalTime(utcTime time.Time) time.Time {
+    return utcTime.In(localTimezone)
+}
+
+# 2. 在返回 API 响应时转换时间
+# movieToProto() 和 movieItemToProto() 中：
+localTime := convertToLocalTime(movie.BoxOffice.LastUpdated)
+LastUpdated: timestamppb.New(localTime)
+
+# 3. 保持数据库配置为 UTC
+# config.yaml: timezone=UTC
+# docker-compose.yml: TZ=UTC, PGTZ=UTC
+
+# 4. 验证
+cd src && go build ./...
+cd .. && bash ./test-utc-local-conversion.sh
+```
+
+**时区转换示例**：
+```go
+// 数据库存储
+UTC:   2025-01-19 10:00:00+00  (原始存储)
+
+// API 返回
+Local: 2025-01-19 18:00:00+08  (转换后返回给用户)
+```
+
+**优势**：
+- ✅ 数据库统一 UTC，避免跨地域问题
+- ✅ 前端接收本地时间，无需再转换
+- ✅ 支持多时区用户（可配置不同时区）
+- ✅ 避免夏令时问题（UTC 无夏令时）
+- ✅ 符合国际化最佳实践
+
+**如何修改时区**：
+```go
+// 修改 src/internal/service/movie.go
+// 纽约时间 (UTC-5)
+var localTimezone, _ = time.LoadLocation("America/New_York")
+
+// 伦敦时间 (UTC+0)
+var localTimezone, _ = time.LoadLocation("Europe/London")
+
+// 东京时间 (UTC+9)
+var localTimezone, _ = time.LoadLocation("Asia/Tokyo")
+
+// 或使用固定偏移（不推荐，无法处理夏令时）
+var localTimezone = time.FixedZone("CST", 8*3600) // UTC+8
+```
+
 ### 2025-01-19：时区统一配置
 
 **问题**：应用层使用 UTC (`time.Now().UTC()`)，但数据库连接和容器未指定时区，可能导致时区混淆。
