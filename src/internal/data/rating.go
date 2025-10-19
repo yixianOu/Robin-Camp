@@ -26,7 +26,7 @@ func NewRatingRepo(data *Data, logger log.Logger) biz.RatingRepo {
 	}
 }
 
-func (r *ratingRepo) UpsertRating(ctx context.Context, rating *biz.Rating) (bool, error) {
+func (r *ratingRepo) UpsertRating(ctx context.Context, rating *biz.Rating) error {
 	dbRating := &Rating{
 		MovieTitle: rating.MovieTitle,
 		RaterID:    rating.RaterID,
@@ -40,11 +40,8 @@ func (r *ratingRepo) UpsertRating(ctx context.Context, rating *biz.Rating) (bool
 	}).Create(dbRating)
 
 	if result.Error != nil {
-		return false, fmt.Errorf("failed to upsert rating: %w", result.Error)
+		return fmt.Errorf("failed to upsert rating: %w", result.Error)
 	}
-
-	// Determine if it was an insert or update
-	isNew := result.RowsAffected > 0
 
 	// Invalidate rating aggregate cache
 	if r.data.rdb != nil {
@@ -55,7 +52,7 @@ func (r *ratingRepo) UpsertRating(ctx context.Context, rating *biz.Rating) (bool
 		r.updateRankings(ctx, rating.MovieTitle)
 	}
 
-	return isNew, nil
+	return nil
 }
 
 func (r *ratingRepo) GetRatingAggregate(ctx context.Context, movieTitle string) (*biz.RatingAggregate, error) {

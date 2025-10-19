@@ -82,7 +82,7 @@ type MovieRepo interface {
 
 // RatingRepo defines the repository interface for ratings
 type RatingRepo interface {
-	UpsertRating(ctx context.Context, rating *Rating) (isNew bool, err error)
+	UpsertRating(ctx context.Context, rating *Rating) error
 	GetRatingAggregate(ctx context.Context, movieTitle string) (*RatingAggregate, error)
 }
 

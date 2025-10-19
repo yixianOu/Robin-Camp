@@ -30,11 +30,11 @@ func NewRatingUseCase(movieRepo MovieRepo, ratingRepo RatingRepo, logger log.Log
 }
 
 // SubmitRating submits or updates a rating for a movie (Upsert)
-func (uc *RatingUseCase) SubmitRating(ctx context.Context, movieTitle, raterID string, ratingValue float64) (*Rating, bool, error) {
+func (uc *RatingUseCase) SubmitRating(ctx context.Context, movieTitle, raterID string, ratingValue float64) (*Rating, error) {
 	// Check if movie exists
 	_, err := uc.movieRepo.GetMovieByTitle(ctx, movieTitle)
 	if err != nil {
-		return nil, false, fmt.Errorf("%w: %v", ErrMovieNotFound, err)
+		return nil, fmt.Errorf("%w: %v", ErrMovieNotFound, err)
 	}
 
 	// Create rating object
@@ -45,12 +45,12 @@ func (uc *RatingUseCase) SubmitRating(ctx context.Context, movieTitle, raterID s
 	}
 
 	// Upsert rating
-	isNew, err := uc.ratingRepo.UpsertRating(ctx, rating)
+	err = uc.ratingRepo.UpsertRating(ctx, rating)
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to upsert rating: %w", err)
+		return nil, fmt.Errorf("failed to upsert rating: %w", err)
 	}
 
-	return rating, isNew, nil
+	return rating, nil
 }
 
 // GetRatingAggregate retrieves aggregated rating for a movie

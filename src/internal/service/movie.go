@@ -149,7 +149,7 @@ func (s *MovieService) SubmitRating(ctx context.Context, req *v1.SubmitRatingReq
 	}
 
 	// Call business logic
-	rating, isNew, err := s.ratingUC.SubmitRating(ctx, req.Title, raterID, req.Rating)
+	rating, err := s.ratingUC.SubmitRating(ctx, req.Title, raterID, req.Rating)
 	if err != nil {
 		// Check error type using errors.Is()
 		if errors.Is(err, biz.ErrMovieNotFound) {
@@ -157,10 +157,6 @@ func (s *MovieService) SubmitRating(ctx context.Context, req *v1.SubmitRatingReq
 		}
 		return nil, err
 	}
-
-	// Note: isNew is not used, but returned by UseCase
-	// Could be used for metrics or logging in the future
-	_ = isNew
 
 	return &v1.SubmitRatingReply{
 		MovieTitle: rating.MovieTitle,

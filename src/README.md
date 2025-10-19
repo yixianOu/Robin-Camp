@@ -606,79 +606,83 @@ cd .. && bash ./e2e-test.sh
 - ✅ Biz 层专注于业务逻辑
 - ✅ 代码结构更清晰
 
-### 2025-01-19：Redis 缓存键一致性修复
+### 2025-01-19：Redis 缓存策略简化（遵循 YAGNI）
 
-**问题**：缓存键使用可变的 `Title`，导致更新标题时旧缓存无法删除，返回脏数据。
+**问题 1：CreateMovie 时删除缓存是多余的**
 
-**问题场景**：
 ```go
-// 原始缓存键设计
-cacheKey := fmt.Sprintf("movie:%s", movie.Title)
-
-// 问题：更新标题时
-UpdateMovie(ctx, &Movie{
-    ID: "m_123",
-    Title: "New Title",  // 从 "Old Title" 改为 "New Title"
-})
-// 1. 更新 DB（Title = "New Title"）
-// 2. 删除缓存 key = "movie:New Title" ✅
-// 3. 但旧缓存 key = "movie:Old Title" 还在！❌
-
-// 用户查询旧标题返回脏数据
-GetMovieByTitle(ctx, "Old Title")  // 返回过期的票房信息
+// ❌ 原代码
+func CreateMovie() {
+    movieID, _ := uuid.NewV7()  // 新生成的 UUID
+    movie.ID = movieID
+    
+    // 删除缓存 movie:id:{新UUID}
+    r.data.rdb.Del(ctx, cacheKey)  // ❌ 没必要！
+}
 ```
 
-**解决方案：双键缓存策略**
+**为什么不需要？**
+- ✅ UUID v7 刚生成，全局唯一，**不可能有缓存**
+- ✅ Title 有 UNIQUE 约束，重名会被数据库拒绝
+- ✅ 没有其他系统预写缓存的场景
 
-**架构设计**：
+**问题 2：缓存 ID 和 Title 两个 key 是过度设计**
+
+```go
+// ❌ 原代码：GetMovieByTitle 时缓存两个键
+titleCacheKey := "movie:title:Inception"    // ✅ 需要
+idCacheKey := "movie:id:m_xxx"              // ❌ 没用！
+
+// 接口定义
+type MovieRepo interface {
+    GetMovieByTitle(ctx, title) (*Movie, error)  // ✅ 只有这个
+    // GetMovieByID(ctx, id) (*Movie, error)     // ❌ 不存在！
+}
 ```
-ID 键：movie:id:{uuid}        → 主缓存，不可变，防止标题更新脏数据
-标题键：movie:title:{title}   → 查询优化，用于 GetMovieByTitle
-```
+
+**问题分析**：
+- **没有 GetMovieByID 方法**，ID 缓存永远不会被读取
+- **内存浪费**：100 万次查询 = 200 万个缓存键（翻倍）
+- **违反 YAGNI 原则**：You Aren't Gonna Need It
+
+**解决方案：简化为单键缓存**
 
 **修复步骤**：
 ```bash
-# 1. 修改缓存键格式（添加类型前缀）
-# 编辑 src/internal/data/movie.go
+# 1. 移除 CreateMovie 中的缓存删除
+# src/internal/data/movie.go
+func CreateMovie() {
+    db.Create(movie)
+    // 不再删除缓存（UUID v7 不可能有缓存）
+}
 
-# ID 键（不可变）
-idCacheKey := fmt.Sprintf("movie:id:%s", movie.ID)
+# 2. GetMovieByTitle 只缓存 title 键
+func GetMovieByTitle(title) {
+    // GET movie:title:{title}
+    // SET movie:title:{title}  // 只缓存一个键
+}
 
-# 标题键（可变，需要双删）
-titleCacheKey := fmt.Sprintf("movie:title:%s", movie.Title)
+# 3. UpdateMovie 删除旧标题和新标题两个键
+func UpdateMovie(movie) {
+    oldMovie := db.First(movie.ID)
+    if oldMovie.Title != movie.Title {
+        Del("movie:title:{old_title}")  // 标题变了，删除旧缓存
+    }
+    db.Save(movie)
+    Del("movie:title:{new_title}")      // 删除新标题缓存
+}
 
-# 2. CreateMovie：删除双键
-# - movie:id:{id}
-# - movie:title:{title}
-# + 添加错误检查和日志
-
-# 3. GetMovieByTitle：写入双键
-# - 查询时使用 movie:title:{title}
-# - 缓存时同时写入 ID 键和标题键
-# - 避免后续按 ID 查询时缓存缺失
-
-# 4. UpdateMovie：查询旧标题 + 删除三键
-# - 先查数据库获取旧标题
-# - 删除 movie:title:{old_title}（如果标题变了）
-# - 删除 movie:id:{id}
-# - 删除 movie:title:{new_title}
-
-# 5. 添加完整错误处理
-# - 所有 Redis 操作检查 .Err()
-# - 失败时记录 Warning 日志，不影响主流程
-# - 依赖 TTL 兜底（15分钟自动过期）
-
-# 6. 验证
+# 4. 验证
 cd src && go build ./...
 ```
 
-**缓存策略完整流程**：
+**简化后的缓存流程**：
 
-| 操作 | 缓存键操作 | 时间复杂度 |
-|------|-----------|-----------|
-| CreateMovie | DEL `movie:id:{id}`<br>DEL `movie:title:{title}` | O(2) |
-| GetMovieByTitle | GET `movie:title:{title}`<br>SET `movie:title:{title}`<br>SET `movie:id:{id}` | O(1) 读<br>O(2) 写 |
-| UpdateMovie | GET DB（查旧标题）<br>DEL `movie:title:{old_title}`<br>DEL `movie:id:{id}`<br>DEL `movie:title:{new_title}` | O(3-4) |
+| 操作 | 缓存键操作 | 内存占用 |
+|------|-----------|---------|
+| CreateMovie | 无操作 ✅ | 0 |
+| GetMovieByTitle | GET `movie:title:{title}`<br>SET `movie:title:{title}` | 1 键 |
+| UpdateMovie | DEL `movie:title:{old_title}` (if changed)<br>DEL `movie:title:{new_title}` | 最多 2 次删除 |
 
 **为什么不需要延时双删？**
 
@@ -749,6 +753,95 @@ if err := r.data.rdb.Del(ctx, cacheKey).Err(); err != nil {
 - ✅ 完整错误处理和日志记录
 - ✅ TTL 兜底保证数据最终一致性
 - ✅ 不需要延时删除（架构已避免竞态）
+
+### 2025-01-19：移除 UpsertRating 的 isNew 返回值
+
+**问题**：`result.RowsAffected > 0` 无法区分 INSERT 和 UPDATE
+
+```go
+// ❌ 原代码
+func UpsertRating() (bool, error) {
+    result := db.Clauses(clause.OnConflict{...}).Create(dbRating)
+    isNew := result.RowsAffected > 0  // ❌ INSERT 和 UPDATE 都是 1
+    return isNew, nil
+}
+
+// GORM 行为：
+// - INSERT 成功 → RowsAffected = 1
+// - UPDATE 成功 → RowsAffected = 1  ❌ 也是 1！
+```
+
+**为什么无法准确判断？**
+
+GORM 的 `ON CONFLICT` 在 PostgreSQL 中：
+- INSERT 时：`RowsAffected = 1`
+- UPDATE 时：`RowsAffected = 1`（更新了一行）
+- 两者无法区分！
+
+**判断 INSERT vs UPDATE 的方法**：
+
+1. **先查询后 Upsert**（性能开销）
+   ```go
+   var existing Rating
+   err := db.Where("...").First(&existing).Error
+   isNew := errors.Is(err, gorm.ErrRecordNotFound)
+   db.Clauses(clause.OnConflict{...}).Create(dbRating)
+   ```
+
+2. **原生 SQL RETURNING**（数据库特定）
+   ```sql
+   INSERT ... ON CONFLICT ... 
+   RETURNING (xmax = 0) AS inserted
+   ```
+
+3. **比较 created_at 和 updated_at**（不精确）
+
+**解决方案：删除 isNew 返回值**
+
+因为：
+- ✅ 无法准确判断 INSERT vs UPDATE
+- ✅ 业务层不需要这个信息（Upsert 语义就是"不关心是插入还是更新"）
+- ✅ 简化接口设计
+
+**修复步骤**：
+```bash
+# 1. 修改接口定义
+# src/internal/biz/types.go
+type RatingRepo interface {
+    UpsertRating(ctx, rating) error  // 移除 isNew 返回值
+}
+
+# 2. 修改 Data 层实现
+# src/internal/data/rating.go
+func UpsertRating() error {
+    // 移除 isNew 逻辑
+    return nil
+}
+
+# 3. 修改 Biz 层调用
+# src/internal/biz/rating.go
+func SubmitRating() (*Rating, error) {
+    err := repo.UpsertRating(ctx, rating)  // 不再接收 isNew
+    return rating, err
+}
+
+# 4. 修改 Service 层调用
+# src/internal/service/movie.go
+rating, err := uc.SubmitRating()  // 移除 isNew 接收
+
+# 5. 验证
+cd src && go build ./...
+```
+
+**收益**：
+- ✅ 删除不准确的 `isNew` 判断逻辑
+- ✅ 简化接口签名（遵循单一职责）
+- ✅ 减少误导性返回值
+- ✅ 代码更清晰易维护
+
+**备注**：如果未来真的需要区分 INSERT 和 UPDATE，应该：
+- 使用原生 SQL + RETURNING 子句
+- 或在应用层先 SELECT 再 UPSERT（接受性能开销）
 
 ### 2025-01-19：错误处理重构
 
