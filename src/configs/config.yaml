@@ -1,25 +1,25 @@
 server:
   http:
-    addr: 0.0.0.0:8080
-    timeout: 30s
+    addr: ${HTTP_ADDR}
+    timeout: ${HTTP_TIMEOUT}
   grpc:
-    addr: 0.0.0.0:9000
-    timeout: 30s
+    addr: ${GRPC_ADDR}
+    timeout: ${GRPC_TIMEOUT}
 
 data:
   database:
     driver: postgres
-    source: ${DB_URL:postgres://app:app@db:5432/moviedb?sslmode=disable&timezone=UTC}
+    source: ${DB_URL}
   redis:
-    addr: ${REDIS_ADDR:redis:6379}
-    read_timeout: 0.2s
-    write_timeout: 0.2s
+    addr: ${REDIS_ADDR}
+    read_timeout: ${REDIS_READ_TIMEOUT}
+    write_timeout: ${REDIS_WRITE_TIMEOUT}
 
 boxoffice:
-  url: ${BOXOFFICE_URL:https://mock.apifox.com/m1/4288164-0-default}
-  api_key: ${BOXOFFICE_API_KEY:your-api-key}
-  timeout: 3s
-  max_retries: 2
+  url: ${BOXOFFICE_URL}
+  api_key: ${BOXOFFICE_API_KEY}
+  timeout: ${BOXOFFICE_TIMEOUT}
+  max_retries: ${BOXOFFICE_MAX_RETRIES}
 
 auth:
-  token: ${AUTH_TOKEN:your-auth-token}
+  token: ${AUTH_TOKEN}

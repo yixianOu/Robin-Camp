@@ -14,7 +14,7 @@
 ## 技术亮点
 
 ### 单一源配置读取
-1. .env中定义了部分配置，而kratos框架从config.yaml中读取配置，为了满足dont repeat yourself原则，config.yaml中的配置项使用环境变量占位符，而docker compose读取.env并在启动容器时注入环境变量，kratos解析到config.yaml中的环境变量占位符，就会读取环境变量作为配置值。
+1. .env中定义了配置，而kratos框架从config.yaml中读取配置，为了满足dont repeat yourself原则，config.yaml中的配置项使用环境变量占位符，而docker compose读取.env并在启动容器时注入环境变量，kratos解析到config.yaml中的环境变量占位符，就会读取环境变量作为配置值。
 
 ### 响应处理：
 1. customErrorEncoder：对于请求参数校验失败的情况，kratos默认返回400状态码，通过自定义错误编码器将其转换为422状态码，符合OpenAPI规范。
@@ -42,6 +42,6 @@
 3. 使用GORM 的 ON CONFLICT 语法实现评分的插入或更新操作，简化代码逻辑。
 4. 游标分页：ListMovies接口使用游标分页，接收游标作为offset，响应下一页的游标，用户只能逐页访问数据，避免了传统分页（大offset扫描）的性能问题。
 
-## 未来可能的迭代
+## 未来可能的迭代和优化
 1. 使用validator中间件而不是在service层校验请求参数。使用customErrorEncoder丰富validator的错误响应（如http状态码）。
 2. 目前更新数据库之后只是简单删除缓存，未来可以使用延时双删策略提升数据一致性。
