@@ -2,10 +2,11 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/go-kratos/kratos/v2/errors"
+	kErrors "github.com/go-kratos/kratos/v2/errors"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	v1 "src/api/movie/v1"
@@ -32,16 +33,16 @@ func NewMovieService(movieUC *biz.MovieUseCase, ratingUC *biz.RatingUseCase) *Mo
 func (s *MovieService) CreateMovie(ctx context.Context, req *v1.CreateMovieRequest) (*v1.CreateMovieReply, error) {
 	// Validate required fields
 	if req.Title == "" {
-		return nil, errors.New(422, "UNPROCESSABLE_ENTITY", "title is required")
+		return nil, kErrors.New(422, "UNPROCESSABLE_ENTITY", "title is required")
 	}
 	if req.Genre == "" {
-		return nil, errors.New(422, "UNPROCESSABLE_ENTITY", "genre is required")
+		return nil, kErrors.New(422, "UNPROCESSABLE_ENTITY", "genre is required")
 	}
 
 	// Parse release date
 	releaseDate, err := time.Parse("2006-01-02", req.ReleaseDate)
 	if err != nil {
-		return nil, errors.New(422, "UNPROCESSABLE_ENTITY", fmt.Sprintf("invalid release_date format, expected YYYY-MM-DD: %v", err))
+		return nil, kErrors.New(422, "UNPROCESSABLE_ENTITY", fmt.Sprintf("invalid release_date format, expected YYYY-MM-DD: %v", err))
 	}
 
 	// Convert proto request to biz model
@@ -130,26 +131,27 @@ func (s *MovieService) SubmitRating(ctx context.Context, req *v1.SubmitRatingReq
 	// Extract rater ID from context (set by middleware)
 	raterID, ok := ctx.Value("rater_id").(string)
 	if !ok || raterID == "" {
-		return nil, errors.Unauthorized("UNAUTHORIZED", "missing X-Rater-Id header")
+		return nil, kErrors.Unauthorized("UNAUTHORIZED", "missing X-Rater-Id header")
+	}
+
+	// Validate rating value (parameter validation in Service layer)
+	if !isValidRating(req.Rating) {
+		return nil, kErrors.New(422, "INVALID_RATING", "invalid rating value: must be between 0.5 and 5.0 with 0.5 step")
 	}
 
 	// Call business logic
 	rating, isNew, err := s.ratingUC.SubmitRating(ctx, req.Title, raterID, req.Rating)
 	if err != nil {
-		// Convert "not found" errors to 404
-		if err.Error() == "movie not found: movie not found: record not found" ||
-			err.Error() == "movie not found: record not found" {
-			return nil, errors.NotFound("NOT_FOUND", "movie not found")
-		}
-		// Convert validation errors to 422
-		if err.Error() == "invalid rating value: must be between 0.5 and 5.0 with 0.5 step" {
-			return nil, errors.New(422, "INVALID_RATING", err.Error())
+		// Check error type using errors.Is()
+		if errors.Is(err, biz.ErrMovieNotFound) {
+			return nil, kErrors.NotFound("NOT_FOUND", "movie not found")
 		}
 		return nil, err
 	}
 
-	// Store is_new in context for HTTP status code handling
-	ctx = context.WithValue(ctx, "is_new_rating", isNew)
+	// Note: isNew is not used, but returned by UseCase
+	// Could be used for metrics or logging in the future
+	_ = isNew
 
 	return &v1.SubmitRatingReply{
 		MovieTitle: rating.MovieTitle,
@@ -163,10 +165,9 @@ func (s *MovieService) GetRating(ctx context.Context, req *v1.GetRatingRequest) 
 	// Call business logic
 	agg, err := s.ratingUC.GetRatingAggregate(ctx, req.Title)
 	if err != nil {
-		// Convert "not found" errors to 404
-		if err.Error() == "movie not found: movie not found: record not found" ||
-			err.Error() == "movie not found: record not found" {
-			return nil, errors.NotFound("NOT_FOUND", "movie not found")
+		// Check error type using errors.Is()
+		if errors.Is(err, biz.ErrMovieNotFound) {
+			return nil, kErrors.NotFound("NOT_FOUND", "movie not found")
 		}
 		return nil, err
 	}
@@ -261,4 +262,15 @@ func (s *MovieService) movieItemToProto(movie *biz.Movie) *v1.MovieItem {
 	}
 
 	return item
+}
+
+// isValidRating checks if the rating value is valid (0.5 to 5.0 with 0.5 step)
+func isValidRating(rating float64) bool {
+	validRatings := []float64{0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0}
+	for _, valid := range validRatings {
+		if rating == valid {
+			return true
+		}
+	}
+	return false
 }

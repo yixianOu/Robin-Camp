@@ -395,6 +395,52 @@ cd src && go test -v ./...
 - ✅ 数据库索引优化（标题、年份、类型、预算）
 - ✅ Docker Compose 部署（多服务编排、健康检查）
 
+## 操作日志
+
+本节记录项目开发过程中执行的关键操作，便于回溯与复现。
+
+### 2025-01-19：错误处理重构
+
+1. **发现代码异味**
+   - Service 层使用硬编码字符串判断错误类型（`err.Error() == "..."`）
+   - 请求结束后设置无效的 Context 值（死代码）
+
+2. **重构步骤**
+   ```bash
+   # 1. 在 Biz 层定义 sentinel errors
+   # 编辑 src/internal/biz/rating.go，添加：
+   # var (
+   #     ErrMovieNotFound = errors.New("movie not found")
+   #     ErrInvalidRating = errors.New("invalid rating value")
+   # )
+   
+   # 2. 修改 Biz 层错误包装
+   # 使用 fmt.Errorf("%w: ...", ErrMovieNotFound, err) 保留错误链
+   
+   # 3. 修改 Service 层错误检查
+   # 编辑 src/internal/service/movie.go：
+   # - 移除硬编码字符串判断
+   # - 使用 errors.Is(err, biz.ErrMovieNotFound) 类型安全检查
+   # - 删除死代码：ctx = context.WithValue(ctx, "is_new_rating", isNew)
+   
+   # 4. 验证编译
+   cd src && go build ./...
+   
+   # 5. 运行 E2E 测试验证
+   cd .. && bash ./e2e-test.sh
+   # 结果：28/28 tests passed ✅
+   ```
+
+3. **重构收益**
+   - ✅ 类型安全：编译期检查错误类型
+   - ✅ 可维护性：错误定义单点维护
+   - ✅ 性能提升：指针比较 vs 字符串比较
+   - ✅ 代码清晰：删除死代码和误导性注释
+   - ✅ 符合 Go 1.13+ 错误处理最佳实践
+
+4. **详细分析**
+   - 完整重构分析请参考根目录 `ERROR_HANDLING_REFACTOR.md`
+
 ## License
 
 MIT License

@@ -2,9 +2,15 @@ package biz
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-kratos/kratos/v2/log"
+)
+
+// Custom errors
+var (
+	ErrMovieNotFound = errors.New("movie not found")
 )
 
 // RatingUseCase handles rating-related business logic
@@ -28,12 +34,7 @@ func (uc *RatingUseCase) SubmitRating(ctx context.Context, movieTitle, raterID s
 	// Check if movie exists
 	_, err := uc.movieRepo.GetMovieByTitle(ctx, movieTitle)
 	if err != nil {
-		return nil, false, fmt.Errorf("movie not found: %w", err)
-	}
-
-	// Validate rating value
-	if !isValidRating(ratingValue) {
-		return nil, false, fmt.Errorf("invalid rating value: must be between 0.5 and 5.0 with 0.5 step")
+		return nil, false, fmt.Errorf("%w: %v", ErrMovieNotFound, err)
 	}
 
 	// Create rating object
@@ -57,7 +58,7 @@ func (uc *RatingUseCase) GetRatingAggregate(ctx context.Context, movieTitle stri
 	// Check if movie exists
 	_, err := uc.movieRepo.GetMovieByTitle(ctx, movieTitle)
 	if err != nil {
-		return nil, fmt.Errorf("movie not found: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrMovieNotFound, err)
 	}
 
 	// Get aggregated rating
@@ -67,15 +68,4 @@ func (uc *RatingUseCase) GetRatingAggregate(ctx context.Context, movieTitle stri
 	}
 
 	return aggregate, nil
-}
-
-// isValidRating checks if the rating value is valid (0.5 to 5.0 with 0.5 step)
-func isValidRating(rating float64) bool {
-	validRatings := []float64{0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0}
-	for _, valid := range validRatings {
-		if rating == valid {
-			return true
-		}
-	}
-	return false
 }

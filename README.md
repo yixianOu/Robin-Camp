@@ -15,7 +15,7 @@
 
 ### 响应处理：
 1. customErrorEncoder：对于请求参数校验失败的情况，kratos默认返回400状态码，通过自定义错误编码器将其转换为422状态码，符合OpenAPI规范。
-2. customResponseEncoder：
+2. customResponseEncoder：对于创建电影接口，返回201 Created状态码，而不是默认的200 OK状态码。
 
 ### 鉴权中间件：
 1. AuthMiddleware：判断请求Context的transport信息，如果是CreateMovie操作，则鉴权token
@@ -24,6 +24,7 @@
 ### zset实现排行榜功能
 
 ### SubmitRating功能实现
+1. 对于评分值的设置，
 
 ### 未来可能的迭代
 1. 使用validator中间件而不是在service层校验请求参数。使用customErrorEncoder丰富validator的错误响应（如http状态码）。
