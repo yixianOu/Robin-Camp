@@ -22,22 +22,25 @@
 2. RaterIdMiddleware：判断请求Context的transport信息，如果是SubmitRating操作，则提取X-Rater-Id
 
 ### zset实现排行榜功能
+1. 使用redis的zset存储电影平均分/评分量排行榜，平均分/评分量作为分值，电影标题作为成员，实现高效的排行榜查询和更新。
 
 ### 自定义错误类型
 1. 为电影提交评分、获取电影评分的时候，使用自定义error类型用以区分不同错误场景，如果目标电影不存在则返回404错误码，其他错误返回默认500错误码。
+
+### 数据库索引
+1. movies表将电影Title设置为唯一索引，为DELETED_AT列创建单列索引以提升软删除查询性能。
+2. ratings表保留了两个索引：
+   - 复合唯一索引uq_rating_movie_rater (movie_title, rater_id)：用于实现评分的插入或更新操作（Upsert），并作为外键关联电影标题。
+   - 单列索引idx_ratings_movie_title (movie_title)：专用索引，用于提升基于电影标题的聚合查询性能，如计算平均分和评分数量。
 
 ### 数据库操作
 1. 使用uuid7作为电影主键，保证分布式环境下的唯一性和有序性。
 2. 使用time.Now().UTC()与数据库交互，避免时区问题。在API响应中转换为本地时间，提升用户体验。
 3. 使用GORM 的 ON CONFLICT 语法实现评分的插入或更新操作，简化代码逻辑。
+4. 游标分页：ListMovies接口使用游标分页，接收游标作为offset，响应下一页的游标，用户只能逐页访问数据，避免了传统分页（大offset扫描）的性能问题。
 
 ### 单一源配置读取
 1. .env中定义了部分配置，而kratos框架从config.yaml中读取配置，为了满足dont repeat yourself原则，config.yaml中的配置项使用环境变量占位符，而docker compose读取.env并在启动容器时注入环境变量，kratos解析到config.yaml中的环境变量占位符，就会读取环境变量作为配置值。
-
-### 数据库索引
-
-### 游标分页
-1. ListMovies接口使用游标分页，接收游标作为offset，响应下一页的游标，用户只能逐页访问数据，避免了传统分页（大offset扫描）的性能问题。
 
 ## 未来可能的迭代
 1. 使用validator中间件而不是在service层校验请求参数。使用customErrorEncoder丰富validator的错误响应（如http状态码）。
