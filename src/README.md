@@ -397,7 +397,47 @@ cd src && go test -v ./...
 
 ## 操作日志
 
-本节记录项目开发过程中执行的关键操作，便于回溯与复现。
+本节记录项目开发过程中执行的关键操作,便于回溯与复现。
+
+### 2025-01-19：参数校验分层重构
+
+**问题**：参数校验逻辑放在了 Biz 层,违反了 DDD 分层职责原则。
+
+**DDD 分层职责**：
+- Service 层：协议转换、**参数校验**、调用 Biz 层
+- Biz 层：业务逻辑、业务规则、领域模型
+
+**参数校验 vs 业务规则**：
+- 参数校验：检查输入格式是否合法（如：评分 0.5-5.0，步长 0.5）→ Service 层
+- 业务规则：检查业务约束（如：同一用户一天只能评分一次）→ Biz 层
+
+**重构步骤**：
+```bash
+# 1. 将 isValidRating() 函数从 Biz 层移到 Service 层
+# 编辑 src/internal/service/movie.go，添加参数校验
+
+# 2. 在 Service 层的 SubmitRating 方法中添加校验
+# 校验失败直接返回 422，不经过 Biz 层
+
+# 3. 移除 Biz 层的参数校验逻辑
+# 编辑 src/internal/biz/rating.go：
+# - 删除 ErrInvalidRating 错误定义
+# - 删除 isValidRating() 函数
+# - 删除 SubmitRating 中的参数校验代码
+
+# 4. 移除 Service 层对 ErrInvalidRating 的处理
+
+# 5. 验证
+cd src && go build ./...
+cd .. && bash ./e2e-test.sh
+# 结果：28/28 tests passed ✅
+```
+
+**重构收益**：
+- ✅ 符合 DDD 分层职责原则
+- ✅ Service 层统一处理所有参数校验
+- ✅ Biz 层专注于业务逻辑
+- ✅ 代码结构更清晰
 
 ### 2025-01-19：错误处理重构
 
@@ -411,7 +451,6 @@ cd src && go test -v ./...
    # 编辑 src/internal/biz/rating.go，添加：
    # var (
    #     ErrMovieNotFound = errors.New("movie not found")
-   #     ErrInvalidRating = errors.New("invalid rating value")
    # )
    
    # 2. 修改 Biz 层错误包装
@@ -437,9 +476,6 @@ cd src && go test -v ./...
    - ✅ 性能提升：指针比较 vs 字符串比较
    - ✅ 代码清晰：删除死代码和误导性注释
    - ✅ 符合 Go 1.13+ 错误处理最佳实践
-
-4. **详细分析**
-   - 完整重构分析请参考根目录 `ERROR_HANDLING_REFACTOR.md`
 
 ## License
 

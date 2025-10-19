@@ -24,7 +24,7 @@
 ### zset实现排行榜功能
 
 ### SubmitRating功能实现
-1. 对于评分值的设置，
+1. 为电影提交评分，使用自定义error类型用以区分不同错误场景，如果电影不存在则返回404错误码，其他错误返回默认500错误码。
 
 ### 未来可能的迭代
 1. 使用validator中间件而不是在service层校验请求参数。使用customErrorEncoder丰富validator的错误响应（如http状态码）。
