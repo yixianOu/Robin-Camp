@@ -606,6 +606,150 @@ cd .. && bash ./e2e-test.sh
 - ✅ Biz 层专注于业务逻辑
 - ✅ 代码结构更清晰
 
+### 2025-01-19：Redis 缓存键一致性修复
+
+**问题**：缓存键使用可变的 `Title`，导致更新标题时旧缓存无法删除，返回脏数据。
+
+**问题场景**：
+```go
+// 原始缓存键设计
+cacheKey := fmt.Sprintf("movie:%s", movie.Title)
+
+// 问题：更新标题时
+UpdateMovie(ctx, &Movie{
+    ID: "m_123",
+    Title: "New Title",  // 从 "Old Title" 改为 "New Title"
+})
+// 1. 更新 DB（Title = "New Title"）
+// 2. 删除缓存 key = "movie:New Title" ✅
+// 3. 但旧缓存 key = "movie:Old Title" 还在！❌
+
+// 用户查询旧标题返回脏数据
+GetMovieByTitle(ctx, "Old Title")  // 返回过期的票房信息
+```
+
+**解决方案：双键缓存策略**
+
+**架构设计**：
+```
+ID 键：movie:id:{uuid}        → 主缓存，不可变，防止标题更新脏数据
+标题键：movie:title:{title}   → 查询优化，用于 GetMovieByTitle
+```
+
+**修复步骤**：
+```bash
+# 1. 修改缓存键格式（添加类型前缀）
+# 编辑 src/internal/data/movie.go
+
+# ID 键（不可变）
+idCacheKey := fmt.Sprintf("movie:id:%s", movie.ID)
+
+# 标题键（可变，需要双删）
+titleCacheKey := fmt.Sprintf("movie:title:%s", movie.Title)
+
+# 2. CreateMovie：删除双键
+# - movie:id:{id}
+# - movie:title:{title}
+# + 添加错误检查和日志
+
+# 3. GetMovieByTitle：写入双键
+# - 查询时使用 movie:title:{title}
+# - 缓存时同时写入 ID 键和标题键
+# - 避免后续按 ID 查询时缓存缺失
+
+# 4. UpdateMovie：查询旧标题 + 删除三键
+# - 先查数据库获取旧标题
+# - 删除 movie:title:{old_title}（如果标题变了）
+# - 删除 movie:id:{id}
+# - 删除 movie:title:{new_title}
+
+# 5. 添加完整错误处理
+# - 所有 Redis 操作检查 .Err()
+# - 失败时记录 Warning 日志，不影响主流程
+# - 依赖 TTL 兜底（15分钟自动过期）
+
+# 6. 验证
+cd src && go build ./...
+```
+
+**缓存策略完整流程**：
+
+| 操作 | 缓存键操作 | 时间复杂度 |
+|------|-----------|-----------|
+| CreateMovie | DEL `movie:id:{id}`<br>DEL `movie:title:{title}` | O(2) |
+| GetMovieByTitle | GET `movie:title:{title}`<br>SET `movie:title:{title}`<br>SET `movie:id:{id}` | O(1) 读<br>O(2) 写 |
+| UpdateMovie | GET DB（查旧标题）<br>DEL `movie:title:{old_title}`<br>DEL `movie:id:{id}`<br>DEL `movie:title:{new_title}` | O(3-4) |
+
+**为什么不需要延时双删？**
+
+**当前使用 Cache-Aside（旁路缓存）模式**：
+```
+写操作流程：
+1. 更新数据库 ✅
+2. 删除缓存 ✅
+```
+
+**不需要延时删除的原因**：
+- ✅ 先更新 DB，后删除缓存（避免脏数据窗口期）
+- ✅ 单机数据库（无主从延迟）
+- ✅ 低并发冲突（电影按 Title 隔离）
+- ✅ TTL 兜底（15分钟自动过期）
+
+**需要延时双删的场景（不适用）**：
+```go
+// 场景：先删缓存，后更新DB（不推荐）
+Del(cache)           // T1: 删除缓存
+                     // T2: 读请求查DB（旧数据）→ 写入缓存
+Update(DB)           // T3: 更新DB
+                     // 问题：缓存中是旧数据！
+sleep(500ms)
+Del(cache)           // T4: 延时删除，清理脏数据
+```
+
+**为什么设置 TTL（15分钟）？**
+
+TTL 是缓存的**保险机制**：
+
+1. **防止删除失败导致脏数据永久存在**
+   ```go
+   if err := r.data.rdb.Del(ctx, cacheKey).Err(); err != nil {
+       // 删除失败，但不影响主流程
+       // 没有 TTL：脏数据永久存在 ❌
+       // 有 TTL：15分钟后自动清理 ✅
+   }
+   ```
+
+2. **处理外部数据变更**
+   ```bash
+   # DBA 直接修改数据库
+   psql -c "UPDATE movies SET budget = 200000000 WHERE id = 'm_123';"
+   # 应用不知道数据已变化，缓存未被删除
+   # 有 TTL：最多 15 分钟后数据一致 ✅
+   ```
+
+3. **内存管理**（冷数据自动释放）
+   ```go
+   // 冷门电影查询一次后写入缓存
+   // 有 TTL：15分钟后自动释放内存 ✅
+   ```
+
+**错误处理策略**：
+```go
+// 所有 Redis 操作添加错误检查
+if err := r.data.rdb.Del(ctx, cacheKey).Err(); err != nil {
+    r.log.Warnf("failed to delete cache: %v", err)
+    // ⚠️ 不返回错误，不阻塞主流程
+    // ✅ 依赖 TTL 保证最终一致性
+}
+```
+
+**收益**：
+- ✅ 修复标题更新脏数据 Bug
+- ✅ 双键设计支持多种查询场景
+- ✅ 完整错误处理和日志记录
+- ✅ TTL 兜底保证数据最终一致性
+- ✅ 不需要延时删除（架构已避免竞态）
+
 ### 2025-01-19：错误处理重构
 
 1. **发现代码异味**

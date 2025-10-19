@@ -35,25 +35,26 @@ func (r *movieRepo) CreateMovie(ctx context.Context, movie *biz.Movie) error {
 		return fmt.Errorf("failed to create movie: %w", err)
 	}
 
-	// Invalidate cache if Redis is available
-	if r.data.rdb != nil {
-		cacheKey := fmt.Sprintf("movie:%s", movie.Title)
-		r.data.rdb.Del(ctx, cacheKey)
-	}
+	// No need to invalidate cache for new movie:
+	// - UUID v7 is newly generated, cannot have existing cache
+	// - Title has UNIQUE constraint, duplicate will be rejected by DB
 
 	return nil
 }
 
 func (r *movieRepo) GetMovieByTitle(ctx context.Context, title string) (*biz.Movie, error) {
 	// Try cache first if Redis is available
+	// Use title-based cache key for query-by-title scenarios
 	if r.data.rdb != nil {
-		cacheKey := fmt.Sprintf("movie:%s", title)
+		cacheKey := fmt.Sprintf("movie:title:%s", title)
 		cached, err := r.data.rdb.Get(ctx, cacheKey).Result()
 		if err == nil {
 			var movie biz.Movie
 			if err := json.Unmarshal([]byte(cached), &movie); err == nil {
 				r.log.Debugf("cache hit for movie: %s", title)
 				return &movie, nil
+			} else {
+				r.log.Warnf("failed to unmarshal cached movie %s: %v", title, err)
 			}
 		}
 	}
@@ -68,10 +69,15 @@ func (r *movieRepo) GetMovieByTitle(ctx context.Context, title string) (*biz.Mov
 	movie := r.modelToBiz(&dbMovie)
 
 	// Cache result if Redis is available
+	// Only cache by title since there's no GetMovieByID method (YAGNI principle)
 	if r.data.rdb != nil {
-		cacheKey := fmt.Sprintf("movie:%s", title)
 		if data, err := json.Marshal(movie); err == nil {
-			r.data.rdb.Set(ctx, cacheKey, data, 15*time.Minute)
+			titleCacheKey := fmt.Sprintf("movie:title:%s", title)
+			if err := r.data.rdb.Set(ctx, titleCacheKey, data, 15*time.Minute).Err(); err != nil {
+				r.log.Warnf("failed to cache movie by title %s: %v", title, err)
+			}
+		} else {
+			r.log.Warnf("failed to marshal movie %s: %v", title, err)
 		}
 	}
 
@@ -158,16 +164,32 @@ func (r *movieRepo) ListMovies(ctx context.Context, query *biz.MovieListQuery) (
 }
 
 func (r *movieRepo) UpdateMovie(ctx context.Context, movie *biz.Movie) error {
+	// Get old title before update to invalidate old cache
+	var oldMovie Movie
+	if r.data.rdb != nil {
+		if err := r.data.db.WithContext(ctx).Where("id = ?", movie.ID).First(&oldMovie).Error; err == nil {
+			// Delete old title cache if title changed
+			if oldMovie.Title != movie.Title {
+				oldTitleCacheKey := fmt.Sprintf("movie:title:%s", oldMovie.Title)
+				if err := r.data.rdb.Del(ctx, oldTitleCacheKey).Err(); err != nil {
+					r.log.Warnf("failed to delete old title cache %s: %v", oldMovie.Title, err)
+				}
+			}
+		}
+	}
+
 	dbMovie := r.bizToModel(movie)
 
 	if err := r.data.db.WithContext(ctx).Save(dbMovie).Error; err != nil {
 		return fmt.Errorf("failed to update movie: %w", err)
 	}
 
-	// Invalidate cache
+	// Invalidate current title cache
 	if r.data.rdb != nil {
-		cacheKey := fmt.Sprintf("movie:%s", movie.Title)
-		r.data.rdb.Del(ctx, cacheKey)
+		titleCacheKey := fmt.Sprintf("movie:title:%s", movie.Title)
+		if err := r.data.rdb.Del(ctx, titleCacheKey).Err(); err != nil {
+			r.log.Warnf("failed to delete title cache for movie %s: %v", movie.Title, err)
+		}
 	}
 
 	return nil
