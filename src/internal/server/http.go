@@ -2,7 +2,6 @@ package server
 
 import (
 	"net/http"
-	"strings"
 
 	v1 "src/api/movie/v1"
 	"src/internal/conf"
@@ -16,18 +15,9 @@ import (
 
 // Custom response encoder to handle 201 status for resource creation
 func customResponseEncoder(w http.ResponseWriter, r *http.Request, v interface{}) error {
-	// Check if response has status code metadata
-	type StatusResponse interface {
-		HTTPStatus() int
-	}
-
-	if sr, ok := v.(StatusResponse); ok {
-		w.WriteHeader(sr.HTTPStatus())
-	} else {
-		// Check if this is a CreateMovie response
-		if strings.Contains(r.URL.Path, "/movies") && r.Method == "POST" && !strings.Contains(r.URL.Path, "/ratings") {
-			w.WriteHeader(http.StatusCreated)
-		}
+	// Check if this is a CreateMovie response (POST /movies, not /movies/{title}/ratings)
+	if r.Method == "POST" && r.URL.Path == "/movies" {
+		w.WriteHeader(http.StatusCreated)
 	}
 
 	// Use default encoder for the response body
