@@ -43,12 +43,24 @@ services:
       - "${PORT:-8080}:8080"
       - "9000:9000"
     environment:
-      PORT: ${PORT:-8080}
+      # Server Configuration
+      HTTP_ADDR: ${HTTP_ADDR:-0.0.0.0:8080}
+      HTTP_TIMEOUT: ${HTTP_TIMEOUT:-30s}
+      GRPC_ADDR: ${GRPC_ADDR:-0.0.0.0:9000}
+      GRPC_TIMEOUT: ${GRPC_TIMEOUT:-30s}
+      # Database Configuration
       DB_URL: postgres://${DB_USER:-app}:${DB_PASSWORD:-app}@db:5432/${DB_NAME:-moviedb}?sslmode=disable&timezone=UTC
-      REDIS_ADDR: redis:6379
+      # Redis Configuration
+      REDIS_ADDR: ${REDIS_ADDR:-redis:6379}
+      REDIS_READ_TIMEOUT: ${REDIS_READ_TIMEOUT:-0.2s}
+      REDIS_WRITE_TIMEOUT: ${REDIS_WRITE_TIMEOUT:-0.2s}
+      # Authentication
       AUTH_TOKEN: ${AUTH_TOKEN}
+      # Box Office API
       BOXOFFICE_URL: ${BOXOFFICE_URL}
       BOXOFFICE_API_KEY: ${BOXOFFICE_API_KEY}
+      BOXOFFICE_TIMEOUT: ${BOXOFFICE_TIMEOUT:-3s}
+      BOXOFFICE_MAX_RETRIES: ${BOXOFFICE_MAX_RETRIES:-2}
     depends_on:
       db:
         condition: service_healthy

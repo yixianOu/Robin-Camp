@@ -24,6 +24,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # Stage 2: Runtime
 FROM alpine:3
 
+# Install envsubst for environment variable substitution
+RUN apk add --no-cache gettext
+
 # Create non-root user
 RUN addgroup -g 1000 appuser && \
     adduser -D -u 1000 -G appuser appuser
@@ -47,7 +50,7 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --spider -q http://localhost:8080/healthz || exit 1
 
-# Run the application
-ENTRYPOINT ["/app/server"]
-CMD ["-conf", "/app/configs"]
+# Use shell wrapper to substitute environment variables before starting app
+ENTRYPOINT ["/bin/sh", "-c", "envsubst < /app/configs/config.yaml > /tmp/config.yaml && /app/server -conf /tmp"]
+CMD []
 
